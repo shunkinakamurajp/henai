@@ -1,0 +1,525 @@
+{
+  "photos": [
+    {
+      "id": "p1",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#春", "#桜", "#風景", "#並木道"],
+      "date": "2026/04/05",
+      "imageUrl": "./images/hana1.jpg"
+    },
+    {
+      "id": "p2",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#花", "#雨", "#ピンク", "#自然"],
+      "date": "2026/03/25",
+      "imageUrl": "./images/hana2.jpg"
+    },
+    {
+      "id": "p3",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#春", "#桜", "#青空", "#光"],
+      "date": "2026/04/10",
+      "imageUrl": "./images/hana3.jpg"
+    },
+    {
+      "id": "p4",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#春", "#桜", "#水辺", "#しだれ桜"],
+      "date": "2026/04/08",
+      "imageUrl": "./images/hana4.jpg"
+    },
+    {
+      "id": "p5",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#城", "#歴史", "#桜", "#建築"],
+      "date": "2026/04/12",
+      "imageUrl": "./images/hana5.jpg"
+    },
+    {
+      "id": "p6",
+      "userId": "u2",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#キーボード", "#ガジェット", "#メカニカル", "#展示会"],
+      "date": "2025/09/20",
+      "imageUrl": "./images/keybord2.jpg"
+    },
+    {
+      "id": "p7",
+      "userId": "u2",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#自作キーボード", "#キーキャップ", "#カスタマイズ", "#色彩"],
+      "date": "2025/09/20",
+      "imageUrl": "./images/keybord3.jpg"
+    },
+    {
+      "id": "p8",
+      "userId": "u2",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#キーボード", "#RK", "#デバイス", "#比較"],
+      "date": "2025/09/20",
+      "imageUrl": "./images/keybord4.jpg"
+    },
+    {
+      "id": "p9",
+      "userId": "u2",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#Keychron", "#巨大", "#オブジェ", "#インパクト"],
+      "date": "2025/09/20",
+      "imageUrl": "./images/keybord5.jpg"
+    },
+    {
+      "id": "p10",
+      "userId": "u2",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#自作キーボード", "#DIY", "#設計", "#ハードウェア"],
+      "date": "2025/09/20",
+      "imageUrl": "./images/keybord1.jpg"
+    },
+    {
+      "id": "p11",
+      "userId": "u3",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#恐竜", "#博物館", "#骨格", "#化石"],
+      "date": "2026/03/20",
+      "imageUrl": "./images/kyouryu1.jpg"
+    },
+    {
+      "id": "p12",
+      "userId": "u3",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#恐竜", "#頭骨", "#博物館", "#迫力"],
+      "date": "2026/03/20",
+      "imageUrl": "./images/kyouryu2.jpg"
+    },
+    {
+      "id": "p13",
+      "userId": "u3",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#恐竜", "#トリケラトプス", "#化石", "#博物館"],
+      "date": "2026/03/20",
+      "imageUrl": "./images/kyouryu3.jpg"
+    },
+    {
+      "id": "p14",
+      "userId": "u3",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#博物館", "#恐竜", "#展示", "#風景"],
+      "date": "2026/03/20",
+      "imageUrl": "./images/kyouryu4.jpg"
+    },
+    {
+      "id": "p15",
+      "userId": "u3",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#恐竜", "#福井", "#モニュメント", "#屋外"],
+      "date": "2026/03/21",
+      "imageUrl": "./images/kyouryu5.jpg"
+    },
+    {
+      "id": "p16",
+      "userId": "u4",
+      "title": "",
+      "memo": "レモンの輪切りがたっぷり入った爽やかなスープのつけ麺。",
+      "tags": [],
+      "aiTags": ["#ラーメン", "#つけ麺", "#レモン", "#グルメ"],
+      "date": "2026/04/20",
+      "imageUrl": "./images/men1.jpg"
+    },
+    {
+      "id": "p17",
+      "userId": "u4",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#つけ麺", "#石焼き", "#ランチ", "#濃厚"],
+      "date": "2026/03/15",
+      "imageUrl": "./images/men2.jpg"
+    },
+    {
+      "id": "p18",
+      "userId": "u4",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#そば", "#信州そば", "#松本", "#和食"],
+      "date": "2026/02/10",
+      "imageUrl": "./images/men3.jpg"
+    },
+    {
+      "id": "p19",
+      "userId": "u4",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#ラーメン", "#塩ラーメン", "#煮卵", "#麺活"],
+      "date": "2026/05/01",
+      "imageUrl": "./images/men4.jpg"
+    },
+    {
+      "id": "p20",
+      "userId": "u4",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#そば", "#手打ち", "#料理", "#職人技"],
+      "date": "2025/12/28",
+      "imageUrl": "./images/men5.jpg"
+    },
+    {
+      "id": "p21",
+      "userId": "u5",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野生動物", "#シカ", "#冬", "#カメラ"],
+      "date": "2026/02/12",
+      "imageUrl": "./images/sika1.jpg"
+    },
+    {
+      "id": "p22",
+      "userId": "u5",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野生動物", "#シカ", "#食事", "#日常"],
+      "date": "2026/02/12",
+      "imageUrl": "./images/sika2.jpg"
+    },
+    {
+      "id": "p23",
+      "userId": "u5",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野生動物", "#シカ", "#街中", "#スナップ"],
+      "date": "2026/02/12",
+      "imageUrl": "./images/sika3.jpg"
+    },
+    {
+      "id": "p24",
+      "userId": "u6",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#城", "#歴史", "#建築", "#風景"],
+      "date": "2025/11/05",
+      "imageUrl": "./images/siro2.jpg"
+    },
+    {
+      "id": "p25",
+      "userId": "u6",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#城", "#松本城", "#公園", "#日常"],
+      "date": "2025/11/05",
+      "imageUrl": "./images/siro3.jpg"
+    },
+    {
+      "id": "p26",
+      "userId": "u6",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#城", "#歴史", "#自然", "#建築"],
+      "date": "2025/11/05",
+      "imageUrl": "./images/siro4.jpg"
+    },
+    {
+      "id": "p27",
+      "userId": "u6",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#城", "#歴史", "#建築", "#内部"],
+      "date": "2025/11/05",
+      "imageUrl": "./images/siro5.jpg"
+    },
+    {
+      "id": "p28",
+      "userId": "u6",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#城", "#風景", "#リフレクション", "#絶景"],
+      "date": "2025/11/05",
+      "imageUrl": "./images/siro1.jpg"
+    },
+    {
+      "id": "p29",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#日本庭園", "#兼六園", "#風景", "#春"],
+      "date": "2026/03/10",
+      "imageUrl": "./images/sizen1.jpg"
+    },
+    {
+      "id": "p30",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#梅", "#花", "#日本庭園", "#自然"],
+      "date": "2026/03/10",
+      "imageUrl": "./images/sizen2.jpg"
+    },
+    {
+      "id": "p31",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#兼六園", "#雪吊り", "#伝統", "#風景"],
+      "date": "2026/03/10",
+      "imageUrl": "./images/sizen3.jpg"
+    },
+    {
+      "id": "p32",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#日本庭園", "#苔", "#道", "#静寂"],
+      "date": "2026/03/10",
+      "imageUrl": "./images/sizen4.jpg"
+    },
+    {
+      "id": "p33",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#松", "#日本庭園", "#造形美", "#木"],
+      "date": "2026/03/10",
+      "imageUrl": "./images/sizen5.jpg"
+    },
+    {
+      "id": "p34",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#神社", "#銀杏", "#紅葉", "#風景"],
+      "date": "2025/11/25",
+      "imageUrl": "./images/sizen6.jpg"
+    },
+    {
+      "id": "p35",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#ダイサギ", "#桜", "#春"],
+      "date": "2026/04/10",
+      "imageUrl": "./images/tori6.jpg"
+    },
+    {
+      "id": "p36",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#アオサギ", "#水辺", "#自然"],
+      "date": "2026/04/10",
+      "imageUrl": "./images/tori7.jpg"
+    },
+    {
+      "id": "p37",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#カワウ", "#飛翔", "#躍動感"],
+      "date": "2026/04/10",
+      "imageUrl": "./images/tori8.jpg"
+    },
+    {
+      "id": "p38",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#コサギ", "#滝", "#静寂"],
+      "date": "2026/04/10",
+      "imageUrl": "./images/tori9.jpg"
+    },
+    {
+      "id": "p39",
+      "userId": "u7",
+      "title": "夕暮れの池のカモ",
+      "memo": "黄金色に輝く水面を泳ぐカモたち。穏やかな午後の風景。",
+      "tags": [],
+      "aiTags": ["#野鳥", "#カモ", "#池", "#夕光"],
+      "date": "2025/11/15",
+      "imageUrl": "./images/tori1.jpg"
+    },
+    {
+      "id": "p40",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#タンチョウ", "#飛翔", "#冬"],
+      "date": "2026/02/15",
+      "imageUrl": "./images/tori2.jpg"
+    },
+    {
+      "id": "p41",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#タンチョウ", "#求愛", "#雪原"],
+      "date": "2026/02/15",
+      "imageUrl": "./images/tori3.jpg"
+    },
+    {
+      "id": "p42",
+      "userId": "u7",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#野鳥", "#ダイサギ", "#水辺", "#光"],
+      "date": "2026/04/10",
+      "imageUrl": "./images/tori4.jpg"
+    },
+    {
+      "id": "p43",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#冬", "#雪山", "#絶景", "#自然"],
+      "date": "2026/02/10",
+      "imageUrl": "./images/yama2.jpg"
+    },
+    {
+      "id": "p44",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#スキー場", "#雪山", "#冬", "#風景"],
+      "date": "2026/02/10",
+      "imageUrl": "./images/yama3.jpg"
+    },
+    {
+      "id": "p45",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#車山", "#富士山", "#八ヶ岳", "#冬山"],
+      "date": "2026/02/10",
+      "imageUrl": "./images/yama4.jpg"
+    },
+    {
+      "id": "p46",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#富士山", "#ドライブ", "#風景", "#空"],
+      "date": "2026/03/15",
+      "imageUrl": "./images/yama5.jpg"
+    },
+    {
+      "id": "p47",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#夜景", "#空撮", "#東京", "#光"],
+      "date": "2025/11/20",
+      "imageUrl": "./images/yakei1.jpg"
+    },
+    {
+      "id": "p48",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#夕日", "#シルエット", "#港", "#風景"],
+      "date": "2026/02/12",
+      "imageUrl": "./images/yakei2.jpg"
+    },
+    {
+      "id": "p49",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#夜景", "#空撮", "#東京湾", "#レインボーブリッジ"],
+      "date": "2025/11/20",
+      "imageUrl": "./images/yakei3.jpg"
+    },
+    {
+      "id": "p50",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#夜景", "#諏訪湖", "#長野", "#星空"],
+      "date": "2025/12/15",
+      "imageUrl": "./images/yakei4.jpg"
+    },
+    {
+      "id": "p51",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#東京駅", "#建築", "#ライトアップ", "#夜景"],
+      "date": "2025/11/20",
+      "imageUrl": "./images/yakei5.jpg"
+    },
+    {
+      "id": "p52",
+      "userId": "u1",
+      "title": "",
+      "memo": "",
+      "tags": [],
+      "aiTags": ["#北アルプス", "#雪山", "#山並み", "#風景"],
+      "date": "2026/03/10",
+      "imageUrl": "./images/yama1.jpg"
+    }
+  ],
+  "collections": []
+}

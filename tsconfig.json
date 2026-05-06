@@ -6,6 +6,7 @@
     "module": "Node16",
     "moduleResolution": "node16",
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,

@@ -27,7 +27,9 @@ interface ItemCardProps {
 
 export default function ItemCard({ item, onTagClick }: ItemCardProps) {
   const [hovered, setHovered] = useState(false);
-  const rot = ROTATIONS[item.id % ROTATIONS.length];
+  const idString = typeof item.id === "number" ? String(item.id) : item.id;
+  const rotationIndex = [...idString].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % ROTATIONS.length;
+  const rot = ROTATIONS[rotationIndex];
   const imgSrc = item.imageUrl ?? item.img;
 
   return (
