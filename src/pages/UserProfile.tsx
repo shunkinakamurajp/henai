@@ -1,9 +1,8 @@
 // src/pages/UserProfile.tsx
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { UserProfile as UserProfileType } from "../types/index.ts";
+import { UserProfile as UserProfileType, Collection } from "../types/index.ts";
 import { useItems } from "../hooks/useItems.ts"; // フックをインポート
-import ZukanCard from "../components/ZukanCard.tsx";
 import PhotoCard from "../components/PhotoCard.tsx";
 import TagChip from "../components/TagChip.tsx";
 
@@ -106,7 +105,49 @@ export default function UserProfile() {
         <h3 style={{ fontFamily: fonts.serif, fontSize: "20px", marginBottom: "20px" }}>図鑑</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
           {displayedCollections.map((item) => (
-            <ZukanCard key={item.id} item={item} />
+            <div key={item.id} style={{
+              background: "#FCFAEF",
+              border: `1px solid ${colors.border}`,
+              borderRadius: 14,
+              overflow: "hidden",
+              padding: 16,
+            }}>
+              {item.thumbnailUrl ? (
+                <img
+                  src={item.thumbnailUrl}
+                  alt={item.title}
+                  style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 10 }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: 150,
+                    background: "#E6E0D4",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 32,
+                  }}>
+                  📚
+                </div>
+              )}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontFamily: fonts.serif, fontSize: 16, fontWeight: "bold", color: colors.text }}>
+                  {item.title}
+                </div>
+                <div style={{ fontSize: 12, color: colors.subtext, marginTop: 6, lineHeight: 1.5 }}>
+                  {item.content}
+                </div>
+                {item.aiTags && item.aiTags.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                    {item.aiTags.map((tag) => (
+                      <TagChip key={tag} label={tag} active={selTag === tag} onClick={() => setSelTag(selTag === tag ? null : tag)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
         {displayedCollections.length === 0 && <p style={{ color: colors.subtext, fontSize: "13px" }}>図鑑の記録はありません</p>}
