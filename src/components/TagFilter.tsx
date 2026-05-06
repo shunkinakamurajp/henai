@@ -1,4 +1,4 @@
-// タグのUIコンポーネント
+import TagChip from "./TagChip.tsx";
 
 type Props = {
   tags: string[];
@@ -6,7 +6,6 @@ type Props = {
   onChange: (tag: string | null) => void;
   mode?: "row" | "wrap";
 };
-// すべてを選択した状態はselected=nullで表現する
 export default function TagFilter({
   tags,
   selected,
@@ -20,47 +19,25 @@ export default function TagFilter({
         flexWrap: mode === "wrap" ? "wrap" : "nowrap",
         gap: 8,
         overflowX: mode === "row" ? "auto" : "visible",
+        alignItems: "center",
       }}
     >
-      {/* 全解除ボタン */}
-      <button
+      {/* すべて */}
+      <TagChip
+        label="すべて"
+        active={selected === null}
         onClick={() => onChange(null)}
-        style={{
-          padding: "4px 10px",
-          borderRadius: 9999,
-          border: `1px solid ${selected === null ? "#A68A61" : "#E6E0D4"}`,
-          background: selected === null ? "#A68A61" : "#F8F6F0",
-          color: selected === null ? "#fff" : "#A39B8B",
-          fontSize: 12,
-          cursor: "pointer",
-        }}
-      >
-        すべて
-      </button>
+      />
 
-      {/* タグ一覧 */}
-      {tags.map((tag) => {
-        const active = selected === tag;
-        return (
-          <button
-            key={tag}
-            onClick={() => onChange(tag)}
-            style={{
-              writingMode: "horizontal-tb", // タグが縦書きになるのを防ぐ
-              padding: "6px 14px", // タグのサイズに合わせて調整
-              borderRadius: 9999,
-              border: `1px solid ${active ? "#A68A61" : "#E6E0D4"}`,
-              background: active ? "#A68A61" : "#F8F6F0",
-              color: active ? "#fff" : "#A39B8B",
-              fontSize: 10,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {tag}
-          </button>
-        );
-      })}
+      {/* タグ */}
+      {tags.map((tag) => (
+        <TagChip
+          key={tag}
+          label={tag}
+          active={selected === tag}
+          onClick={() => onChange(tag)}
+        />
+      ))}
     </div>
   );
 }

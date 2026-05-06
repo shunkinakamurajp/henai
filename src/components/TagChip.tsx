@@ -42,6 +42,9 @@ export default function TagChip({
         cursor: "pointer",
         fontFamily: fonts.sans,
         transition: "all 0.15s",
+        whiteSpace: "nowrap", // 文字を絶対に折り返さない
+        flexShrink: 0, // Flexボックス内で圧縮されるのを防ぐ
+        display: "inline-block", // または "inline-flex"
         ...style,
       }}
     >
