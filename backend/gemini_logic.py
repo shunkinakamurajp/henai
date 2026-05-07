@@ -1,4 +1,3 @@
-# src/gemini_logic.py
 import os
 import json
 import re
@@ -9,39 +8,46 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# 引数を「image_data_base64」の1つだけに修正
-# src/gemini_logic.py
-
 def analyze_image_with_gemini(image_data_base64):
-    """
-    画像から『偏愛』タグを3つ抽出する
-    """
-    # 最新の安定版モデルを指定
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    print("--- Gemini解析プロセス開始 ---")
+    
+    # --- 使えるモデル名を自動で特定する ---
+    target_model = None
+    try:
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        # flash-latest -> flash -> pro の順で優先して探す
+        for name in ["models/gemini-1.5-flash-latest", "models/gemini-1.5-flash", "models/gemini-1.5-pro"]:
+            if name in available_models:
+                target_model = name
+                break
+        if not target_model:
+            target_model = available_models[0] # 何も見つからなければ一番上のものを使う
+        print(f"使用するモデル: {target_model}")
+    except Exception as e:
+        print(f"モデル一覧取得エラー: {e}")
+        target_model = "models/gemini-1.5-flash-latest" # フォールバック
+
+    model = genai.GenerativeModel(target_model)
 
     if "," in image_data_base64:
-        header, image_data_base64 = image_data_base64.split(",")
-        mime_type = header.split(";")[0].split(":")[1]
-    else:
-        mime_type = "image/jpeg"
+        image_data_base64 = image_data_base64.split(",")[1]
 
     try:
-        # API呼び出し
+        # 解析リクエスト
         response = model.generate_content([
             "この画像から「偏愛」を感じるキーワードを3つ抽出してください。必ず [\"タグ1\", \"タグ2\", \"タグ3\"] というJSONのリスト形式だけで出力してください。",
-            {"mime_type": mime_type, "data": image_data_base64}
+            {"mime_type": "image/jpeg", "data": image_data_base64}
         ])
 
-        if not response.text:
-            return []
-
+        print(f"Gemini生の応答: {response.text}")
+        
         json_match = re.search(r'\[.*\]', response.text, re.DOTALL)
         if json_match:
-            return json.loads(json_match.group())
-
+            tags = json.loads(json_match.group())
+            print(f"抽出成功: {tags}")
+            return tags
+            
     except Exception as e:
-        print(f"Gemini解析エラー: {e}")
+        print(f"Gemini解析エラー詳細: {e}")
     
-    # ★ 修正ポイント: エラー時は空のリストを返す
-    # これにより、フロントエンドの polling が「まだ解析が終わっていない」と正しく判断できます
     return []
