@@ -152,20 +152,20 @@ export default function PhotoCard({ item, rotation, pinColor }: PhotoCardProps) 
             )}
 
             {/* フラットモードのみ：aiTagsを表示 */}
-            {!isPolaroid && item.aiTags && item.aiTags.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
-                {item.aiTags.slice(0, 3).map((t) => (
-                  <span
-                    key={t}
-                    style={{
-                      fontSize: 10,
-                      padding: "2px 8px",
-                      borderRadius: 4,
-                      color: colors.accent,
-                      background: "rgba(166,138,97,0.1)",
-                    }}
-                  >
-                    {t}
+            {!isPolaroid && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8, minHeight: "18px" }}>
+                {/* aiTags または tags があれば表示、なければ何も出さない */}
+                {(item.aiTags?.length ? item.aiTags : item.tags || []).slice(0, 3).map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    fontSize: 10,
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                    color: colors.accent,
+                    background: "rgba(166,138,97,0.1)",
+                  }}>
+                  #{t}
                   </span>
                 ))}
               </div>

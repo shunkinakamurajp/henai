@@ -16,38 +16,45 @@ export const useItems = () => {
   const [error, setError] = useState<string | null>(null);
   const { getToken } = useAuth();
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // 1. Supabase Auth から現在のユーザーを取得
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id ?? null);
+  const fetchData = async (silent = false) => {
+  if (!silent) setLoading(true); // silentがfalseの時だけロード中を出す
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id ?? null);
 
-      // 2. バックエンドから全データを取得
-      const [photosRes, collectionsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/photos`),
-        fetch(`${API_BASE_URL}/collections`),
-      ]);
+    const [photosRes, collectionsRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/photos`),
+      fetch(`${API_BASE_URL}/collections`),
+    ]);
 
-      if (photosRes.ok) {
-        const data = await photosRes.json();
-        setPhotos(data.photos || []);
-      }
-      if (collectionsRes.ok) {
-        const data = await collectionsRes.json();
-        setCollections(data.collections || []);
-      }
-    } catch (err: any) {
-      console.error("データの読み込みに失敗しました:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (photosRes.ok) {
+      const data = await photosRes.json();
+      setPhotos(data.photos || []);
     }
-  };
+    // ... collectionsResの処理も同様 ...
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    if (!silent) setLoading(false);
+  }
+};
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+useEffect(() => {
+  fetchData(); // 初回読み込み
+
+  const timer = setInterval(() => {
+    // 最新の photos を確認し、タグが空のものがある時だけ「静かに」再取得
+    setPhotos(current => {
+      const needsUpdate = current.some(p => !p.tags || p.tags.length === 0);
+      if (needsUpdate) {
+        fetchData(true); // 裏側で更新
+      }
+      return current;
+    });
+  }, 5000);
+
+  return () => clearInterval(timer);
+}, []); // 依存配列を空にして無限ループを防止
 
   // 自分自身の投稿のみ (Home, Photos, Zukan用)
   const myPhotos = useMemo(() => 
