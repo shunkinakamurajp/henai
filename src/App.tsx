@@ -18,25 +18,35 @@ function App() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const token = await getToken();
-      setIsAuthenticated(!!token);
+      try {
+        const token = await getToken();
+        // デバッグ用：トークンが正しく取得できているかコンソールで確認してください
+        console.log("Auth Check - Token found:", !!token);
+        setIsAuthenticated(!!token);
+      } catch (error) {
+        console.error("Auth Check Error:", error);
+        setIsAuthenticated(false);
+      }
     };
     checkUser();
   }, [getToken]);
 
-  // 認証状態の確認が終わるまで何も表示しない（リダイレクトのチラつき防止）
-  if (isAuthenticated === null) return null;
+  // 認証状態が確定するまで（nullの間）は、何も描画せずに待機する
+  if (isAuthenticated === null) {
+    return null; 
+  }
 
   return (
     <BrowserRouter>
       <Layout>
         <Routes>
-          {/* HOME（/）をログインなしで見れるようにしたい場合は、
-            以下を element={<Home />} に書き換えてください 
+          {/* ログイン済みなら Home、未ログインなら Login へ飛ばす
+            もし「ログインなしでもホームを見せたい」場合は、
+            element={<Home />} に書き換えてください。
           */}
           <Route 
             path="/" 
-            element={isAuthenticated ? <Home /> : <Navigate to="/login" />} 
+            element={isAuthenticated ? <Home /> : <Navigate to="/login" replace />}
           />
           
           <Route path="/login" element={<Login />} />
@@ -48,6 +58,9 @@ function App() {
           <Route path="/record" element={<Record />} />
           <Route path="/account" element={<Account />} />
           <Route path="/user/:userId" element={<UserProfile />} />
+
+          {/* 定義されていないパスに来たらホームにリダイレクト */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
     </BrowserRouter>
