@@ -3,12 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useItems } from '../hooks/useItems.ts';
 import { useAuth } from '../hooks/useAuth.ts';
+import { supabase } from '../lib/supabase.ts';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { photos, collections } = useItems(); 
   const { getToken } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('GUEST');
 
   const LEFT_FULL   = 220;
   const LEFT_MINI   = 72;
@@ -23,21 +25,50 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const isLeftCollapsed = userOverride !== null ? userOverride : autoCollapsed;
 
-  useEffect(() => {
-    const update = async () => {
-      const w = window.innerWidth;
-      setAutoCollapsed(w < BREAK_COLLAPSE_LEFT);
-      setIsRightOpen(w >= BREAK_CLOSE_RIGHT);
-      setUserOverride(null);
+ useEffect(() => {
+  // 共通の更新処理を定義
+  const update = async () => {
+    // 1. ウィンドウサイズの判定
+    const w = window.innerWidth;
+    setAutoCollapsed(w < BREAK_COLLAPSE_LEFT);
+    setIsRightOpen(w >= BREAK_CLOSE_RIGHT);
 
-      // ログイン状態を確認
-      const token = await getToken();
-      setIsLoggedIn(!!token);
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+    // 2. ログイン状態の確認
+    const token = await getToken();
+    setIsLoggedIn(!!token);
+
+    // 3. ユーザー情報の取得（Supabase）
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      let name = user.user_metadata?.display_name || 'USER';
+      const { data: profile } = await supabase.from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+        
+      if (profile?.username) name = profile.username;
+      setUsername(name);
+    }
+  };
+
+  // 初回マウント時に実行
+  update();
+
+  // 認証状態の変化を監視
+  const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    setIsLoggedIn(!!session);
+    update(); // ログイン・ログアウト時にも情報を更新
+  });
+
+  // リサイズイベントの登録
+  window.addEventListener('resize', update);
+
+  // クリーンアップ処理
+  return () => {
+    window.removeEventListener('resize', update);
+    authListener.subscription.unsubscribe();
+  };
+}, []); // 空の依存配列でマウント時のみ実行
 
   const colors = {
     bg:      '#F8F6F0',
@@ -60,12 +91,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { path: '/observation', label: '観測',     icon: '🔭' },
     { path: '/record',      label: '記録する', icon: '✏️' },
     { path: '/signup',      label: '新規登録', icon: '📝' },
+    { path: '/login',       label: 'ログイン', icon: '🔑' },
   ];
 
   // ログイン済みの場合は、パスが '/signup' のものを除外する
-  const navItems = isLoggedIn 
-    ? allNavItems.filter(item => item.path !== '/signup')
-    : allNavItems;
+  const navItems = isLoggedIn
+    ? allNavItems.filter(item => item.path !== '/signup' && item.path !== '/login')
+    : allNavItems.filter(item => item.path !== '/record');
   // ── ページごとのコンテキストに応じた擬似AI処理 ──
   
   let targetTags: string[] = [];
@@ -108,7 +140,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   // CSSの conic-gradient 用の文字列を生成
   let currentPercent = 0;
   const gradientString = topTagsData.map((data, index) => {
-    const percent = (data.count / totalCount) * 100;
+    const percent = (data.count / (totalCount || 1)) * 100;
     const color = chartColors[index % chartColors.length];
     const part = `${color} ${currentPercent}% ${currentPercent + percent}%`;
     currentPercent += percent;
@@ -308,20 +340,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
               {!isLeftCollapsed && (
                 <div style={{ overflow: 'hidden' }}>
-                  <div style={{
-                    fontWeight: 'bold',
-                    fontSize: '16px',
-                    color: colors.text,
-                    borderBottom: `1px solid ${colors.accent}`,
-                    paddingBottom: '2px',
-                    display: 'inline-block',
-                    minWidth: '80px',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    NAME
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                    {username}
                   </div>
                 </div>
-              )}
+        )}
             </div>
           </Link>
 
@@ -339,17 +362,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
           )}
 
-          {/* 称号リスト（既存） */}
-          {!isLeftCollapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
-              {aiTitles.map((title, i) => (
-                <div key={i} style={{ fontSize: '11px', color: colors.subtext }}>
-                  {title}
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* 称号リスト */}
           {!isLeftCollapsed && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
@@ -359,6 +371,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </div>
               ))}
             </div>
+          )}
+          {/* ログアウトボタン（ログイン中のみ表示） */}
+          {!isLeftCollapsed && isLoggedIn && (
+          <button 
+            onClick={() => supabase.auth.signOut()}
+            style={{
+            marginTop: '16px',
+            padding: '8px 12px',
+            fontSize: '12px',
+            color: colors.subtext,
+            background: 'none',
+            border: `1px solid ${colors.border}`,
+            borderRadius: '6px',
+            cursor: 'pointer',
+            textAlign: 'left'
+          }}
+  >         🚪 ログアウト
+          </button>
           )}
         </div>
       </aside>
