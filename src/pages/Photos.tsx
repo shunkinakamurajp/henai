@@ -3,7 +3,7 @@ import TagFilter from "../components/TagFilter.tsx";
 import { PhotoMaterial, BoardCondition, SavedBoard } from "../types/index.ts";
 import { useItems } from "../hooks/useItems.ts";
 
-// デザイン定義
+// --- デザイン定義 (一貫性のあるデザイン用) ---
 const F = {
   serif: '"Noto Serif JP","Hiragino Mincho ProN",serif',
   sans: '"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif',
@@ -58,17 +58,23 @@ const defaultCondition: BoardCondition = {
 };
 
 export default function Photos() {
-  // myPhotos を photos として扱う
+  // myPhotos を使用
   const { myPhotos: photos, loading, updatePhoto } = useItems();
 
   const [offsets, setOffsets] = useState<Record<string | number, { dx: number; dy: number }>>({});
+  
+  // 安全な初期化 (localStorage からの不整合を防ぐ)
   const [cond, setCond] = useState<BoardCondition>(() => {
-    const saved = localStorage.getItem("photoCond");
-    return saved ? JSON.parse(saved) : defaultCondition;
+    try {
+      const saved = localStorage.getItem("photoCond");
+      return saved ? { ...defaultCondition, ...JSON.parse(saved) } : defaultCondition;
+    } catch {
+      return defaultCondition;
+    }
   });
+
   const [panelOpen, setPanelOpen] = useState<boolean>(() => {
-    const saved = localStorage.getItem("panelOpen");
-    return saved ? (JSON.parse(saved) as boolean) : false;
+    return localStorage.getItem("panelOpen") === "true";
   });
 
   useEffect(() => {
@@ -96,7 +102,7 @@ export default function Photos() {
 
   const filtered = useMemo((): PhotoMaterial[] => {
     let r = [...(photos || [])];
-    if (cond.tags.length > 0)
+    if (cond.tags && cond.tags.length > 0)
       r = r.filter((p) => cond.tags.every((t) => (p.aiTags ?? p.tags ?? []).map((s) => s.replace(/^#/, "")).includes(t)));
     if (cond.dateFrom) r = r.filter((p) => p.date && p.date >= cond.dateFrom);
     if (cond.dateTo) r = r.filter((p) => p.date && p.date <= cond.dateTo);
@@ -170,7 +176,7 @@ export default function Photos() {
           <p style={{ fontSize: 12, color: C.sub }}>あなた自身の記録を整理する場所です。画像をクリックして言葉を添えられます。</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setPanelOpen((o) => !o)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: panelOpen ? C.accent : C.bg, color: panelOpen ? "#fff" : C.sub, fontSize: 12, cursor: "pointer", fontFamily: F.sans }}>
+          <button onClick={() => setPanelOpen(!panelOpen)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: panelOpen ? C.accent : C.bg, color: panelOpen ? "#fff" : C.sub, fontSize: 12, cursor: "pointer", fontFamily: F.sans }}>
             {panelOpen ? "▲ 条件を閉じる" : "▼ 条件を設定"}
           </button>
           <button onClick={() => setSaveModal(true)} style={{ padding: "7px 16px", borderRadius: 8, background: C.accent, color: "#fff", border: "none", fontSize: 12, cursor: "pointer", fontWeight: "bold", fontFamily: F.sans }}>
@@ -183,7 +189,7 @@ export default function Photos() {
         <div style={{ background: "#FCFAEF", border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 20px", marginBottom: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 18 }}>
           <div style={{ gridColumn: "1 / -1" }}>
             <PanelLabel>タグで絞る</PanelLabel>
-            <TagFilter tags={allTags} selected={cond.tags.length === 1 ? cond.tags[0] : null} onChange={(t) => t ? setCond((c) => ({ ...c, tags: [t] })) : setCond((c) => ({ ...c, tags: [] }))} mode="row" />
+            <TagFilter tags={allTags} selected={(cond.tags && cond.tags.length === 1) ? cond.tags[0] : null} onChange={(t) => t ? setCond((c) => ({ ...c, tags: [t] })) : setCond((c) => ({ ...c, tags: [] }))} mode="row" />
           </div>
           <div>
             <PanelLabel>枚数：最大 {cond.maxCount} 枚</PanelLabel>
@@ -316,10 +322,10 @@ function SaveModal({ cond, offsets, onClose }: any) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: C.bg, borderRadius: 14, padding: "24px", width: 340 }}>
         <h3 style={{ fontFamily: F.serif, margin: "0 0 16px" }}>図鑑に保存</h3>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例：散歩の記録" style={{ width: "100%", padding: "10px", marginBottom: 20, borderRadius: 8, border: `1px solid ${C.border}` }} />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例：散歩の記録" style={{ width: "100%", padding: "10px", marginBottom: 20, borderRadius: 8, border: `1px solid ${C.border}`, outline: "none" }} />
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent" }}>キャンセル</button>
-          <button onClick={save} style={{ flex: 1, padding: "10px", borderRadius: 8, background: C.accent, color: "#fff", border: "none", fontWeight: "bold" }}>保存</button>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", cursor: "pointer" }}>キャンセル</button>
+          <button onClick={save} disabled={!title.trim()} style={{ flex: 1, padding: "10px", borderRadius: 8, background: title.trim() ? C.accent : C.border, color: "#fff", border: "none", fontWeight: "bold", cursor: title.trim() ? "pointer" : "default" }}>保存</button>
         </div>
       </div>
     </div>
@@ -333,5 +339,7 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "left" | "right"; disabled:
     </button>
   );
 }
-function PanelLabel({ children }: { children: React.ReactNode }) { return <div style={{ fontSize: 10, color: C.sub, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontWeight: "bold" }}>{children}</div>; }
-function SmallChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void; }) { return <button onClick={onClick} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 9999, border: `1px solid ${active ? C.accent : C.border}`, background: active ? C.accent : C.bg, color: active ? "#fff" : C.sub, cursor: "pointer" }}>{label}</button>; }
+
+function PanelLabel({ children }: { children: React.ReactNode }) { return <div style={{ fontSize: 10, color: C.sub, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontWeight: "bold", fontFamily: F.sans }}>{children}</div>; }
+
+function SmallChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void; }) { return <button onClick={onClick} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 9999, border: `1px solid ${active ? C.accent : C.border}`, background: active ? C.accent : C.bg, color: active ? "#fff" : C.sub, cursor: "pointer", fontFamily: F.sans }}>{label}</button>; }
