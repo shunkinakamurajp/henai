@@ -4,18 +4,14 @@ import uuid
 import json
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from dotenv import load_dotenv
 from supabase import create_client, Client
-
-# AI解析ロジックのインポート
 from gemini_logic import analyze_image_with_gemini
 
 load_dotenv()
 
 app = FastAPI()
 
-# --- CORS設定 ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,26 +20,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Supabase 接続設定 ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+@app.get("/collections")
+async def get_collections():
+    # まだ実装していない場合は、とりあえず空リストを返すことで 404 を防ぎます
+    return {"collections": []}
+
 @app.get("/photos")
 async def get_photos():
     try:
-        # タグ情報をJOINして取得
+        # 確実にタグを取得するためのセレクト文
+        # リレーション名が 'exhibit_tags' であることを確認してください
         res = supabase.table("exhibits").select(
             "id, user_id, image_url, text, created_at, exhibit_tags(tags(name))"
         ).order("created_at", desc=True).execute()
 
+        # デバッグ用：Supabaseから届いた生のデータ構造をターミナルに表示
+        # タグが出ない原因が「リレーション名の不一致」なら、ここで空のデータが見えるはずです
+        if res.data:
+            print(f"Debug Raw Data (Row 0): {res.data[0]}")
+
         formatted = []
         for row in res.data:
-            # ★ 重要：ネストされたタグ情報を ["タグ1", "タグ2"] 形式に整形
             tag_names = []
-            exhibit_tags = row.get("exhibit_tags", [])
-            if exhibit_tags:
-                for et in exhibit_tags:
+            # exhibit_tags が取得できているか確認
+            ex_tags = row.get("exhibit_tags")
+            if ex_tags and isinstance(ex_tags, list):
+                for et in ex_tags:
+                    # tagsテーブルのnameを取り出す
                     tag_obj = et.get("tags")
                     if tag_obj and "name" in tag_obj:
                         tag_names.append(tag_obj["name"])
@@ -53,8 +60,8 @@ async def get_photos():
                 "userId": str(row.get("user_id")),
                 "imageUrl": row.get("image_url", ""),
                 "memo": row.get("text", ""),
-                "tags": tag_names,      # ここを tag_names に変更
-                "aiTags": tag_names,    # ここを tag_names に変更
+                "tags": tag_names,
+                "aiTags": tag_names,
                 "date": str(row.get("created_at", ""))[:10],
             })
         return {"photos": formatted}
@@ -69,24 +76,27 @@ async def save_exhibit(
     tags: str = Form("[]"),
     authorization: str = Header(None)
 ):
+    print("\n--- 保存プロセス開始 ---")
     try:
-        # 1. ユーザーIDの取得 (UUIDエラー 22P02 の対策)
+        # 1. ユーザーID取得
         auth_token = authorization.split(" ")[1] if authorization else None
-        user_info = supabase.auth.get_user(auth_token)
-        current_user_id = user_info.user.id # 本物のUUIDを使用
-        
-        # 2. 画像の読み込みとAI解析
+        user_res = supabase.auth.get_user(auth_token)
+        current_user_id = user_res.user.id
+        print(f"UserID: {current_user_id}")
+
+        # 2. 画像保存
         contents = await file.read()
+        file_path = f"{uuid.uuid4()}.jpg"
+        supabase.storage.from_("images").upload(file_path, contents)
+        image_url = supabase.storage.from_("images").get_public_url(file_path)
+        print(f"ImageURL: {image_url}")
+
+        # 3. AI解析呼び出し
         image_base64 = base64.b64encode(contents).decode("utf-8")
-        
-        # ★ 引数を1つにして呼び出し
         ai_tags = analyze_image_with_gemini(image_base64)
-        print(f"解析成功: {ai_tags}")
+        print(f"AI解析結果: {ai_tags}")
 
-        # 3. DB保存 (exhibits)
-        # ※画像URLは本来Storageに保存しますが、テスト用にプレースホルダ
-        image_url = f"https://your-storage-url.com/{file.filename}" 
-
+        # 4. exhibitレコード作成
         db_res = supabase.table("exhibits").insert({
             "user_id": current_user_id,
             "image_url": image_url,
@@ -94,21 +104,35 @@ async def save_exhibit(
         }).execute()
         
         exhibit_id = db_res.data[0]["id"]
+        print(f"Exhibit作成完了 ID: {exhibit_id}")
 
-        # 4. タグの保存ロジック (既存のループ処理をそのまま使用)
-        # ai_tags が空でなければ、ここでDBに保存されます
-        # ...
-        
-        return {"status": "success", "id": exhibit_id}
+        # 5. タグ保存ループ (ここが動いているかチェック)
+        if not ai_tags:
+            print("警告: AIタグが空のため、タグ保存をスキップします。")
+
+        for t_name in ai_tags:
+            print(f"処理中のタグ: {t_name}")
+            # タグの存在確認
+            tag_data = supabase.table("tags").select("id").eq("name", t_name).execute()
+            
+            if not tag_data.data:
+                print(f"新規タグとして登録: {t_name}")
+                new_tag = supabase.table("tags").insert({"name": t_name}).execute()
+                tag_id = new_tag.data[0]["id"]
+            else:
+                tag_id = tag_data.data[0]["id"]
+            
+            # 中間テーブル紐付け
+            print(f"中間テーブルに紐付け試行: exhibit:{exhibit_id}, tag:{tag_id}")
+            link_res = supabase.table("exhibit_tags").insert({
+                "exhibit_id": exhibit_id,
+                "tag_id": tag_id
+            }).execute()
+            print(f"紐付け結果: {link_res.data}")
+
+        print("--- 保存プロセス完了 ---\n")
+        return {"status": "success"}
+
     except Exception as e:
-        print(f"致命的なエラー発生: {e}")
+        print(f"！！！致命的なエラー発生！！！: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
-@app.get("/collections")
-async def get_collections():
-    return {"collections": []}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
