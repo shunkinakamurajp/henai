@@ -57,8 +57,8 @@ const defaultCondition: BoardCondition = {
 };
 
 export default function Photos() {
-  // 自分の投稿のみを取得[cite: 5, 10]
-  const { myPhotos, loading, updatePhoto } = useItems();
+  // 修正箇所: myPhotos ではなく photos で受け取るように修正
+  const { photos, loading, updatePhoto } = useItems();
 
   const [offsets, setOffsets] = useState<Record<string | number, { dx: number; dy: number }>>({});
   const [cond, setCond] = useState<BoardCondition>(() => {
@@ -89,19 +89,20 @@ export default function Photos() {
   const set = <K extends keyof BoardCondition>(k: K, v: BoardCondition[K]) =>
     setCond((c) => ({ ...c, [k]: v }));
 
-  const allTags = useMemo(() => [
-      ...new Set(myPhotos.flatMap((p) => (p.aiTags ?? p.tags ?? []).map((t) => t.replace(/^#/, "")))),
-    ], [myPhotos]);
+  // 修正箇所: undefined対策を施し、photos を使用
+  const allTags = useMemo(() => {
+    return Array.from(new Set((photos || []).flatMap(photo => photo.tags || [])));
+  }, [photos]);
 
+  // 修正箇所: myPhotos から photos に変更し、undefined対策を追加
   const filtered = useMemo((): PhotoMaterial[] => {
-    // 自分の写真のみを対象に絞り込む[cite: 5]
-    let r = [...myPhotos];
+    let r = [...(photos || [])];
     if (cond.tags.length > 0)
       r = r.filter((p) => cond.tags.every((t) => (p.aiTags ?? p.tags ?? []).map((s) => s.replace(/^#/, "")).includes(t)));
     if (cond.dateFrom) r = r.filter((p) => p.date && p.date >= cond.dateFrom);
     if (cond.dateTo) r = r.filter((p) => p.date && p.date <= cond.dateTo);
     return r.slice(0, cond.maxCount);
-  }, [myPhotos, cond.tags, cond.dateFrom, cond.dateTo, cond.maxCount]);
+  }, [photos, cond.tags, cond.dateFrom, cond.dateTo, cond.maxCount]);
 
   const size = SIZES[cond.sizeIdx];
   const mixed = cond.sizeIdx === 3;
@@ -155,6 +156,7 @@ export default function Photos() {
   const handleSaveText = () => {
     if (!lightbox) return;
     const newTags = editTags.split(" ").filter(t => t.trim() !== "");
+    // ここでエラーが出ないように、事前にuseItems.tsへupdatePhoto関数を追加する必要があります
     updatePhoto(lightbox.id, {
       title: editTitle,
       memo: editMemo,
