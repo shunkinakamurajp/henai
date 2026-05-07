@@ -1,33 +1,20 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useItems } from "../hooks/useItems.ts";
-import { PhotoMaterial } from "../types/index.ts";
-
-const C = {
-  bg: "#F8F6F0",
-  text: "#3D3328",
-  sub: "#A39B8B",
-  accent: "#A68A61",
-  border: "#E6E0D4",
-  card: "#FCFAEF",
-};
-
-const F = {
-  serif: '"Noto Serif JP","Hiragino Mincho ProN",serif',
-  sans: '"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif',
-};
 
 export default function Record() {
   const { addPhoto } = useItems();
   const navigate = useNavigate();
   const [url, setUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null); // 送信用ファイル
   const [drag, setDrag] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isUploading, setIsUploading] = useState(false); // アップロード中状態
   const ref = useRef<HTMLInputElement>(null);
 
   const load = (f?: File) => {
     if (!f?.type.startsWith("image/")) return;
-    // localStorageに保存できるよう、Base64形式に変換して読み込む
+    setFile(f);
     const reader = new FileReader();
     reader.onloadend = () => {
       setUrl(reader.result as string);
@@ -35,172 +22,94 @@ export default function Record() {
     reader.readAsDataURL(f);
   };
 
-  const handleSave = () => {
-    if (!url) return;
-    setSaved(true);
+  const handleSave = async () => {
+    if (!file) return;
     
-    // 今日の日付を取得 (YYYY/MM/DD)
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
-
-    const newPhoto: PhotoMaterial = {
-      id: crypto.randomUUID(),
-      userId: "u1",
-      title: "",
-      memo: "",
-      tags: [],
-      date: dateStr,
-      imageUrl: url,
-    };
-
-    addPhoto(newPhoto);
-
-    setTimeout(() => {
-      setSaved(false);
-      navigate("/photos");
-    }, 1000);
+    setIsUploading(true);
+    try {
+      // Pythonサーバーへ送信（テキストとタグは現在は空で送信）
+      await addPhoto(file, "", []);
+      setSaved(true);
+      
+      // 成功したら一覧へ戻る
+      setTimeout(() => {
+        setSaved(false);
+        navigate("/photos");
+      }, 1500);
+    } catch (error) {
+      alert("保存に失敗しました。サーバーが起動しているか確認してください。");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <div
-      style={{
-        fontFamily: F.sans,
-        color: C.text,
-        maxWidth: 500,
-        margin: "0 auto",
-        padding: "40px 20px",
-      }}
-    >
-      {/* ── ヘッダー ── */}
-      <div style={{ marginBottom: 32 }}>
-        <h1
-          style={{
-            fontFamily: F.serif,
-            fontSize: 26,
-            fontWeight: "bold",
-            letterSpacing: "0.05em",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 8,
-          }}
-        >
-          <span>📷</span> 画像を記録
-        </h1>
-        <p style={{ fontSize: 14, color: C.sub, letterSpacing: "0.02em" }}>
-          まずは画像だけを保存。言葉は後から図鑑で紡ぎましょう。
-        </p>
-      </div>
+    <div style={C.main}>
+      <header style={C.header}>
+        <button onClick={() => navigate(-1)} style={C.back}>←</button>
+        <h1 style={C.title}>素材を記録</h1>
+        <div style={{ width: 40 }} />
+      </header>
 
-      {/* ── メインカード ── */}
-      <div
-        style={{
-          background: C.card,
-          borderRadius: 24,
-          overflow: "hidden",
-          border: `1px solid ${C.border}`,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-          marginBottom: 32,
-        }}
-      >
-        {/* 画像エリア  */}
+      <div style={C.content}>
         <div
-          onClick={() => !url && ref.current?.click()}
+          style={{
+            ...C.dropzone,
+            borderColor: drag ? "#646cff" : "#ddd",
+            backgroundColor: drag ? "#f0f0ff" : "#fafafa",
+          }}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
           onDrop={(e) => {
             e.preventDefault();
             setDrag(false);
             load(e.dataTransfer.files[0]);
           }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDrag(true);
-          }}
-          onDragLeave={() => setDrag(false)}
-          style={{
-            aspectRatio: "4/3",
-            position: "relative",
-            background: drag ? "rgba(166,138,97,.06)" : "#EAE6DB",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: url ? "default" : "pointer",
-            transition: "all .15s",
-          }}
+          onClick={() => ref.current?.click()}
         >
           {url ? (
-            <>
-              <img
-                src={url}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                alt=""
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setUrl(null);
-                }}
-                style={closeBtnStyle}
-              >
-                ×
-              </button>
-            </>
+            <img src={url} alt="preview" style={C.preview} />
           ) : (
-            <div style={{ textAlign: "center", opacity: 0.3 }}>
-              <span style={{ fontSize: 48 }}>＋</span>
+            <div style={C.placeholder}>
+              <span style={{ fontSize: 40 }}>📸</span>
+              <p>タップして写真を選択<br/>またはドラッグ＆ドロップ</p>
             </div>
           )}
+          <input
+            type="file"
+            ref={ref}
+            style={{ display: "none" }}
+            accept="image/*"
+            onChange={(e) => load(e.target.files?.[0])}
+          />
         </div>
-      </div>
 
-      <input
-        ref={ref}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={(e) => load(e.target.files?.[0])}
-      />
-
-      {/* ── 保存ボタン  ── */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button
-          onClick={handleSave}
-          disabled={!url || saved}
-          style={{
-            padding: "12px 48px",
-            borderRadius: 12,
-            border: `1px solid ${C.accent}`,
-            background: saved ? C.accent : url ? C.bg : "transparent",
-            color: saved ? "#fff" : url ? C.text : C.sub,
-            fontSize: 14,
-            cursor: url && !saved ? "pointer" : "default",
-            transition: "all .2s",
-            fontFamily: F.sans,
-            fontWeight: "bold",
-            letterSpacing: "0.1em",
-            opacity: url ? 1 : 0.5,
-          }}
-        >
-          {saved ? "保存済み ✓" : "記録する"}
-        </button>
+        <div style={C.actions}>
+          <button
+            onClick={handleSave}
+            disabled={!file || isUploading}
+            style={{
+              ...C.button,
+              opacity: (!file || isUploading) ? 0.5 : 1,
+            }}
+          >
+            {isUploading ? "解析中..." : saved ? "記録完了！" : "画像を記録"}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-const closeBtnStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 12,
-  right: 12,
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  background: "rgba(0,0,0,0.4)",
-  border: "none",
-  color: "#fff",
-  fontSize: 18,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backdropFilter: "blur(4px)",
+const C: Record<string, React.CSSProperties> = {
+  main: { minHeight: "100vh", backgroundColor: "#fff" },
+  header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderBottom: "1px solid #eee" },
+  back: { fontSize: "24px", background: "none", border: "none", cursor: "pointer" },
+  title: { fontSize: "18px", fontWeight: "bold", margin: 0 },
+  content: { padding: "20px" },
+  dropzone: { width: "100%", aspectRatio: "1/1", border: "2px dashed #ddd", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", cursor: "pointer", transition: "all 0.2s" },
+  preview: { width: "100%", height: "100%", objectFit: "cover" },
+  placeholder: { textAlign: "center", color: "#888" },
+  actions: { marginTop: "30px" },
+  button: { width: "100%", padding: "16px", borderRadius: "12px", border: "none", backgroundColor: "#000", color: "#fff", fontSize: "16px", fontWeight: "bold", cursor: "pointer" },
 };

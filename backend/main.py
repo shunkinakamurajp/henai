@@ -10,7 +10,7 @@ from supabase import create_client, Client
 from gemini_logic import analyze_image_with_gemini, analyze_user_trends_and_title
 
 # .envファイルから環境変数（APIキーやDB接続情報）を読み込む
-load_dotenv()[cite: 1]
+load_dotenv()
 
 app = FastAPI()
 
@@ -25,8 +25,8 @@ app.add_middleware(
 
 # --- Supabase 接続設定 ---
 # .env に記載した URL と KEY を使用します
-SUPABASE_URL = os.environ.get("SUPABASE_URL")[cite: 1]
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")[cite: 1]
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("⚠️ 警告: Supabase の接続情報が .env に設定されていません。")
@@ -99,3 +99,13 @@ async def save_exhibit(
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.get("/photos")
+async def get_photos():
+    # ひとまずエラーを防ぐために、空のデータを返します
+    # （後でSupabaseからデータを引っ張ってくる処理に書き換えます）
+    return []
+
+@app.get("/collections")
+async def get_collections():
+    return []

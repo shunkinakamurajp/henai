@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { PhotoMaterial, Collection } from "../types";
+import { PhotoMaterial, Collection } from "../types/index";
 
-const API_BASE_URL = "https://henaizukan-database.onrender.com";
+// 接続先をローカルのPythonサーバーに変更
+const API_BASE_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
 
 export const useItems = () => {
   const [photos, setPhotos] = useState<PhotoMaterial[]>([]);
@@ -9,143 +10,54 @@ export const useItems = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // データベースから情報を取得する関数
   const fetchData = async () => {
     setLoading(true);
-    setError(null);
-
     try {
+      // 現在のPythonサーバーにはまだ取得用エンドポイントがないため、
+      // 起動時のエラーを防ぐために一時的に空配列をセットする運用も可能です
       const [photosRes, collectionsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/photos`),
         fetch(`${API_BASE_URL}/collections`),
       ]);
 
-      if (!photosRes.ok) {
-        throw new Error(`写真の取得に失敗しました: ${photosRes.status}`);
-      }
-
-      if (!collectionsRes.ok) {
-        throw new Error(`コレクションの取得に失敗しました: ${collectionsRes.status}`);
-      }
-
-      const photosData = await photosRes.json();
-      const collectionsData = await collectionsRes.json();
-
-      setPhotos(photosData.photos || []);
-      setCollections(collectionsData.collections || []);
+      if (photosRes.ok) setPhotos(await photosRes.json());
+      if (collectionsRes.ok) setCollections(await collectionsRes.json());
     } catch (err: any) {
-      console.error("データの取得に失敗しました:", err);
+      console.error("データ取得エラー（サーバー未起動の可能性があります）:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // 初回マウント時にデータを取得
   useEffect(() => {
     fetchData();
   }, []);
 
-  // 新しい写真を追加する関数
-  const addPhoto = async (
-    selectedFile: File,
-    text: string,
-    tags: string[] = [],
-    token?: string
-  ) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("text", text);
-      formData.append("tags", tags.join(","));
+  // Pythonサーバーの /save エンドポイントへ送信する関数
+  const addPhoto = async (file: File, text: string, tags: string[]) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("text", text);
+    formData.append("tags", JSON.stringify(tags));
 
-      const res = await fetch(`${API_BASE_URL}/save`, {
+    try {
+      const response = await fetch(`${API_BASE_URL}/save`, {
         method: "POST",
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : {},
         body: formData,
       });
 
-      if (!res.ok) {
-        throw new Error(`写真の追加に失敗しました: ${res.status}`);
-      }
+      if (!response.ok) throw new Error("サーバーへの保存に失敗しました");
 
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      await fetchData();
-
-      return { success: true, data };
+      const result = await response.json();
+      // 保存成功後、最新のデータを再取得して画面を更新
+      fetchData();
+      return result;
     } catch (err: any) {
-      console.error(err);
-      return { success: false, error: err.message };
+      console.error("送信エラー:", err);
+      throw err;
     }
   };
 
-  // 新しいコレクションを追加する関数
-  const addCollection = async (
-    newCollection: Omit<Collection, "id" | "authorId" | "createdAt"> & {
-      imageIds: string[];
-    },
-    token?: string
-  ) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/collections`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          title: newCollection.title,
-          content: newCollection.content,
-          thumbnailUrl: newCollection.thumbnailUrl,
-          imageIds: newCollection.imageIds,
-          aiTags: newCollection.aiTags || [],
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`コレクションの追加に失敗しました: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      await fetchData();
-
-      return { success: true, data };
-    } catch (err: any) {
-      console.error(err);
-      return { success: false, error: err.message };
-    }
-  };
-
-  // コレクション更新APIはまだFastAPI側に未実装なので一旦未対応
-  const updateCollection = async () => {
-    return {
-      success: false,
-      error: "updateCollection は現在バックエンド未実装です。",
-    };
-  };
-
-  return {
-    photos,
-    collections,
-    loading,
-    error,
-    refetch: fetchData,
-    addPhoto,
-    addCollection,
-    updateCollection,
-  };
+  return { photos, collections, loading, error, addPhoto, refetch: fetchData };
 };
