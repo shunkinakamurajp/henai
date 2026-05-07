@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useItems } from '../hooks/useItems.ts';
+import { useAuth } from '../hooks/useAuth.ts';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { photos, collections } = useItems(); 
+  const { getToken } = useAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const LEFT_FULL   = 220;
   const LEFT_MINI   = 72;
@@ -21,11 +24,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isLeftCollapsed = userOverride !== null ? userOverride : autoCollapsed;
 
   useEffect(() => {
-    const update = () => {
+    const update = async () => {
       const w = window.innerWidth;
       setAutoCollapsed(w < BREAK_COLLAPSE_LEFT);
       setIsRightOpen(w >= BREAK_CLOSE_RIGHT);
       setUserOverride(null);
+
+      // ログイン状態を確認
+      const token = await getToken();
+      setIsLoggedIn(!!token);
     };
     update();
     window.addEventListener('resize', update);
@@ -46,14 +53,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     sans:  '"Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif',
   };
 
-  const navItems = [
+  const allNavItems = [
     { path: '/',            label: 'ホーム',   icon: '🏠' },
     { path: '/photos',      label: 'フォト',   icon: '🖼️' },
     { path: '/zukan',       label: '図鑑',     icon: '📖' },
     { path: '/observation', label: '観測',     icon: '🔭' },
     { path: '/record',      label: '記録する', icon: '✏️' },
+    { path: '/signup',      label: '新規登録', icon: '📝' },
   ];
 
+  // ログイン済みの場合は、パスが '/signup' のものを除外する
+  const navItems = isLoggedIn 
+    ? allNavItems.filter(item => item.path !== '/signup')
+    : allNavItems;
   // ── ページごとのコンテキストに応じた擬似AI処理 ──
   
   let targetTags: string[] = [];
@@ -110,16 +122,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     : `まだ${pageContext}のデータが少ないようです。日常の気になるものを記録して、あなたの偏愛の傾向を分析しましょう。`;
 
   // 4. 左下のAI称号生成
-  const allTagsCounts = [...photos.flatMap(p => p.tags || []), ...collections.flatMap(c => c.aiTags || [])].reduce((acc, tag) => {
-    const cleanTag = tag.replace(/^#/, "");
+  const allTagsCounts = [...photos.flatMap(p => p.tags || []), ...collections.flatMap(c => c.aiTags || [])].reduce<Record<string, number>>((acc, tag) => {
+    const cleanTag = String(tag).replace(/^#/, "");
     acc[cleanTag] = (acc[cleanTag] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
   
-  const overallTopTags = Object.entries(allTagsCounts)
+  const overallTopTags = Object.entries(allTagsCounts as Record<string, number>)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 2)
-    .map(entry => entry[0]);
+    .map(([tag]) => tag);
 
   const aiTitles = overallTopTags.length >= 2 
     ? [`${overallTopTags[0]}の探求者`, `${overallTopTags[1]}の愛好家`] 
@@ -312,6 +324,31 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               )}
             </div>
           </Link>
+
+          {/* isLoggedIn が false の時だけ表示する */}
+          {!isLeftCollapsed && !isLoggedIn && (
+            <div style={{ marginBottom: '12px', paddingLeft: '4px' }}>
+              <Link to="/signup" style={{ 
+                fontSize: '12px', 
+                color: colors.accent, 
+                textDecoration: 'none',
+                fontWeight: 'bold' 
+              }}>
+                ✨ 新規登録はこちら
+              </Link>
+            </div>
+          )}
+
+          {/* 称号リスト（既存） */}
+          {!isLeftCollapsed && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
+              {aiTitles.map((title, i) => (
+                <div key={i} style={{ fontSize: '11px', color: colors.subtext }}>
+                  {title}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* 称号リスト */}
           {!isLeftCollapsed && (

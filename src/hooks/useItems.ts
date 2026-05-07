@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { PhotoMaterial, Collection } from "../types/index";
+import { useAuth } from "./useAuth";
 
-// 接続先をローカルのPythonサーバーに変更
 const API_BASE_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
 
 export const useItems = () => {
@@ -9,21 +9,26 @@ export const useItems = () => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 現在のPythonサーバーにはまだ取得用エンドポイントがないため、
-      // 起動時のエラーを防ぐために一時的に空配列をセットする運用も可能です
       const [photosRes, collectionsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/photos`),
         fetch(`${API_BASE_URL}/collections`),
       ]);
 
-      if (photosRes.ok) setPhotos(await photosRes.json());
-      if (collectionsRes.ok) setCollections(await collectionsRes.json());
+      if (photosRes.ok) {
+        const data = await photosRes.json();
+        setPhotos(data.photos || []);
+      }
+      if (collectionsRes.ok) {
+        const data = await collectionsRes.json();
+        setCollections(data.collections || []);
+      }
     } catch (err: any) {
-      console.error("データ取得エラー（サーバー未起動の可能性があります）:", err);
+      console.error("データの読み込みに失敗しました:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -34,8 +39,10 @@ export const useItems = () => {
     fetchData();
   }, []);
 
-  // Pythonサーバーの /save エンドポイントへ送信する関数
   const addPhoto = async (file: File, text: string, tags: string[]) => {
+    const token = await getToken();
+    if (!token) throw new Error("セッションが切れています。再ログインしてください。");
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("text", text);
@@ -44,20 +51,29 @@ export const useItems = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/save`, {
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
         body: formData,
       });
 
-      if (!response.ok) throw new Error("サーバーへの保存に失敗しました");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "サーバーでの保存に失敗しました");
+      }
 
       const result = await response.json();
-      // 保存成功後、最新のデータを再取得して画面を更新
-      fetchData();
+      await fetchData(); // 最新のリストに更新
       return result;
     } catch (err: any) {
-      console.error("送信エラー:", err);
+      console.error("アップロードエラー:", err);
       throw err;
     }
   };
 
-  return { photos, collections, loading, error, addPhoto, refetch: fetchData };
+  const updatePhoto = async (id: string | number, updates: Partial<PhotoMaterial>) => {
+    console.log(`写真(ID: ${id})の更新予約:`, updates);
+  };
+
+  return { photos, collections, loading, error, addPhoto, updatePhoto, refetch: fetchData };
 };
