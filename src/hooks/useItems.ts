@@ -1,18 +1,7 @@
-import { useState, useEffect } from 'react';
-import { PhotoMaterial, Collection } from '../types';
+import { useState, useEffect } from "react";
+import { PhotoMaterial, Collection } from "../types";
 
-// .env ファイルから Supabase の環境変数を読み込む
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const API_BASE_URL = `${SUPABASE_URL}/rest/v1`;
-
-// REST API 用の共通ヘッダー
-const headers = {
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
+const API_BASE_URL = "https://henaizukan-database.onrender.com";
 
 export const useItems = () => {
   const [photos, setPhotos] = useState<PhotoMaterial[]>([]);
@@ -24,24 +13,28 @@ export const useItems = () => {
   const fetchData = async () => {
     setLoading(true);
     setError(null);
+
     try {
-      // Promise.all で photos と collections を並列取得（パフォーマンス向上）
       const [photosRes, collectionsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/photos?select=*`, { headers }),
-        fetch(`${API_BASE_URL}/collections?select=*`, { headers })
+        fetch(`${API_BASE_URL}/photos`),
+        fetch(`${API_BASE_URL}/collections`),
       ]);
 
-      if (!photosRes.ok) throw new Error(`写真の取得に失敗しました: ${photosRes.status}`);
-      if (!collectionsRes.ok) throw new Error(`コレクションの取得に失敗しました: ${collectionsRes.status}`);
+      if (!photosRes.ok) {
+        throw new Error(`写真の取得に失敗しました: ${photosRes.status}`);
+      }
+
+      if (!collectionsRes.ok) {
+        throw new Error(`コレクションの取得に失敗しました: ${collectionsRes.status}`);
+      }
 
       const photosData = await photosRes.json();
       const collectionsData = await collectionsRes.json();
 
-      // データが空の場合の安全対策（APIがエラーではなくnullを返した場合に備えてフォールバック）
-      setPhotos(photosData || []);
-      setCollections(collectionsData || []);
+      setPhotos(photosData.photos || []);
+      setCollections(collectionsData.collections || []);
     } catch (err: any) {
-      console.error('データの取得に失敗しました:', err);
+      console.error("データの取得に失敗しました:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -53,21 +46,41 @@ export const useItems = () => {
     fetchData();
   }, []);
 
-  // --- データの追加・更新処理 ---
-
   // 新しい写真を追加する関数
-  const addPhoto = async (newPhoto: Omit<PhotoMaterial, 'id'>) => {
+  const addPhoto = async (
+    selectedFile: File,
+    text: string,
+    tags: string[] = [],
+    token?: string
+  ) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/photos`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(newPhoto)
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("text", text);
+      formData.append("tags", tags.join(","));
+
+      const res = await fetch(`${API_BASE_URL}/save`, {
+        method: "POST",
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {},
+        body: formData,
       });
-      if (!res.ok) throw new Error('写真の追加に失敗しました');
-      
+
+      if (!res.ok) {
+        throw new Error(`写真の追加に失敗しました: ${res.status}`);
+      }
+
       const data = await res.json();
-      // 画面の表示を即座に更新する
-      setPhotos(prev => [...prev, ...data]);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      await fetchData();
+
       return { success: true, data };
     } catch (err: any) {
       console.error(err);
@@ -76,17 +89,40 @@ export const useItems = () => {
   };
 
   // 新しいコレクションを追加する関数
-  const addCollection = async (newCollection: Omit<Collection, 'id'>) => {
+  const addCollection = async (
+    newCollection: Omit<Collection, "id" | "authorId" | "createdAt"> & {
+      imageIds: string[];
+    },
+    token?: string
+  ) => {
     try {
       const res = await fetch(`${API_BASE_URL}/collections`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(newCollection)
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: newCollection.title,
+          content: newCollection.content,
+          thumbnailUrl: newCollection.thumbnailUrl,
+          imageIds: newCollection.imageIds,
+          aiTags: newCollection.aiTags || [],
+        }),
       });
-      if (!res.ok) throw new Error('コレクションの追加に失敗しました');
-      
+
+      if (!res.ok) {
+        throw new Error(`コレクションの追加に失敗しました: ${res.status}`);
+      }
+
       const data = await res.json();
-      setCollections(prev => [...prev, ...data]);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      await fetchData();
+
       return { success: true, data };
     } catch (err: any) {
       console.error(err);
@@ -94,34 +130,22 @@ export const useItems = () => {
     }
   };
 
-  // コレクションの情報を更新する関数
-  const updateCollection = async (id: string, updates: Partial<Collection>) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/collections?id=eq.${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(updates)
-      });
-      if (!res.ok) throw new Error('コレクションの更新に失敗しました');
-      
-      const data = await res.json();
-      // 更新されたIDに一致するstateのデータだけを上書き
-      setCollections(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
-      return { success: true, data };
-    } catch (err: any) {
-      console.error(err);
-      return { success: false, error: err.message };
-    }
+  // コレクション更新APIはまだFastAPI側に未実装なので一旦未対応
+  const updateCollection = async () => {
+    return {
+      success: false,
+      error: "updateCollection は現在バックエンド未実装です。",
+    };
   };
 
-  return { 
-    photos, 
-    collections, 
-    loading, 
-    error, 
-    refetch: fetchData, // 任意のタイミングで再取得できるようにエクスポート
+  return {
+    photos,
+    collections,
+    loading,
+    error,
+    refetch: fetchData,
     addPhoto,
     addCollection,
-    updateCollection
+    updateCollection,
   };
 };
