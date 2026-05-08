@@ -138,7 +138,8 @@ useEffect(() => {
     if (topTagsData.length < 2) return; // データが少ない時はやめる
     setIsAnalyzing(true);
     try {
-      const response = await fetch('http://localhost:8000/analyze-tendency', {
+      const apiUrl = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/analyze-tendency`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: topTagsData.map(t => t.tag) }),
