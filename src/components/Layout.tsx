@@ -15,32 +15,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [aiAnalysis, setAiAnalysis] = useState<string>("書斎の記録を読み解いています...");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // ✨ AIと通信して分析結果をもらう処理を追加
-useEffect(() => {
-  const fetchAnalysis = async () => {
-    if (topTagsData.length < 2) return; // データが少ない時はやめる
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch('http://localhost:8000/analyze-tendency', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: topTagsData.map(t => t.tag) }),
-      });
-      const data = await response.json();
-      setAiAnalysis(data.analysis);
-    } catch (err) {
-      setAiAnalysis("現在は静かに観測を続けています。");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  // タグの合計数が変わるたびに（または3回に1回）実行
-  if (totalCount > 0) {
-    fetchAnalysis();
-  }
-}, [totalCount]); // totalCountが変わったら実行
-
   const LEFT_FULL   = 220;
   const LEFT_MINI   = 72;
   const RIGHT_WIDTH = 280;
@@ -158,7 +132,31 @@ useEffect(() => {
     return part;
   }).join(", ");
 
-  
+   // ✨ AIと通信して分析結果をもらう処理を追加
+useEffect(() => {
+  const fetchAnalysis = async () => {
+    if (topTagsData.length < 2) return; // データが少ない時はやめる
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('http://localhost:8000/analyze-tendency', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: topTagsData.map(t => t.tag) }),
+      });
+      const data = await response.json();
+      setAiAnalysis(data.analysis);
+    } catch (err) {
+      setAiAnalysis("現在は静かに観測を続けています。");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // タグの合計数が変わるたびに（または3回に1回）実行
+  if (totalCount > 0) {
+    fetchAnalysis();
+  }
+}, [totalCount, topTagsData]); // totalCountが変わったら実行
 
   const profileImageUrl = ""; 
 
