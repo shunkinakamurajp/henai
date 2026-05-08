@@ -137,59 +137,7 @@ export default function Observation() {
           })}
         </div>
       )}
-      {/* ── 詳細ポップアップ（モーダル） ── */}
-      {selectedPhoto && (
-        <div 
-          onClick={() => setSelectedPhoto(null)} 
-          style={{ 
-            position: "fixed", 
-            top: 0, left: 0, width: "100%", height: "100%", 
-            backgroundColor: "rgba(0,0,0,0.8)", // 背景を暗くする
-            display: "flex", alignItems: "center", justifyContent: "center", 
-            zIndex: 9999, // 一番上に持ってくる
-            padding: "20px"
-          }}
-        >
-          {/* 閉じるボタン：画面右上に固定 */}
-          <button 
-            onClick={() => setSelectedPhoto(null)}
-            style={{
-              position: "absolute", top: "20px", right: "20px",
-              background: "#fff", border: "none", borderRadius: "50%",
-              width: "40px", height: "40px", cursor: "pointer",
-              fontSize: "20px", fontWeight: "bold", zIndex: 10000,
-              boxShadow: "0 4px 10px rgba(0,0,0,0.3)"
-            }}
-          >
-            ✕
-          </button>
-
-          {/* 白いカード部分 */}
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            style={{ 
-              backgroundColor: "#fff", padding: "24px", borderRadius: "8px", 
-              maxWidth: "600px", width: "100%", maxHeight: "90vh", 
-              overflowY: "auto", position: "relative"
-            }}
-          >
-            <img 
-              src={selectedPhoto.url} 
-              style={{ width: "100%", height: "auto", borderRadius: "4px", marginBottom: "16px" }} 
-            />
-            <h2 style={{ fontFamily: fonts.serif, fontSize: "24px", marginBottom: "12px" }}>
-              {selectedPhoto.title || "無題の記録"}
-            </h2>
-            <p style={{ color: colors.subtext, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-              {selectedPhoto.description}
-            </p>
-            
-            <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: `1px solid ${colors.line}`, fontSize: "12px", fontFamily: fonts.mono }}>
-              Observer ID: {selectedPhoto.userId}
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }
