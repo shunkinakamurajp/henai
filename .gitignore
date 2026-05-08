@@ -1,0 +1,15 @@
+# 環境変数（APIキーなど）
+.env
+.env.local
+.env.*
+
+# Python
+backend/.env
+__pycache__/
+venv/
+*.py[cod]
+
+# Node.js
+node_modules/
+dist/
+.DS_Store
