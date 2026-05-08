@@ -19,7 +19,10 @@ export default function Zukan() {
 
   useEffect(() => {
     const fetchBoards = async () => {
-      if (!user) return;
+      if (!user) {
+        setBoardsLoading(false); // ★ ユーザーがいない場合もローディングを解除する
+        return;
+      }
       try {
         const q = query(
           collection(db, "savedBoards"), 
@@ -30,21 +33,21 @@ export default function Zukan() {
         const fetchedBoards = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as SavedBoard[];
-        
+          })) as SavedBoard[];
+
         setBoards(fetchedBoards);
         // 最初の一つを選択状態にする
         if (fetchedBoards.length > 0 && !activeId) {
           setActiveId(fetchedBoards[0].id);
         }
-      } catch (err) {
+        } catch (err) {
         console.error("ボードの取得に失敗しました:", err);
       } finally {
-        setBoardsLoading(false);
+       setBoardsLoading(false);
       }
     };
     fetchBoards();
-  }, [user]);
+  }, [user, activeId]); // 依存配列に activeId も追加しておくとより安全です
 
   const loading = itemsLoading || boardsLoading;
   const activeBoard = boards.find((b) => b.id === activeId) ?? boards[0] ?? null;
