@@ -63,25 +63,78 @@ export default function Observation() {
           現在、この領域で観測可能な他者の記録はありません。
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "40px" }}>
-          {filteredPhotos.map((photo, index) => (
-            <div 
-              key={photo.id} 
-               onClick={() => setSelectedPhoto(photo)} // ★ 追加：クリックで選択
-              style={{ 
-                position: "relative", 
-                transform: `rotate(${((index % 5) - 2) * 1.5}deg)`, 
-                cursor: "zoom-in", // ★ 追加：クリックできることを示す
-                transition: "transform 0.2s ease"
-            }}>
-              <div style={{ background: "#fff", padding: "12px", borderRadius: "2px", boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-                <PhotoCard item={photo} />
-                <div style={{ marginTop: "12px", fontSize: "10px", color: colors.subtext, textAlign: "right", fontFamily: fonts.mono, borderTop: `1px solid ${colors.line}`, paddingTop: "8px" }}>
-                  Observer ID: {photo.userId?.slice(0, 8)}...
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+          gap: "60px 40px", // 上下の間隔を少し広げて重なりを軽減
+          alignItems: "start" 
+        }}>
+          {filteredPhotos.map((photo, index) => {
+            const isSelected = selectedPhoto?.id === photo.id; // このカードが選択されているか
+
+            return (
+              <div 
+                key={photo.id} 
+                onClick={() => setSelectedPhoto(isSelected ? null : photo)} // クリックで展開/折りたたみ
+                style={{ 
+                  position: "relative", 
+                  // 選択時は「回転を戻す」「少し大きくする」「最前面へ」
+                  transform: isSelected ? "rotate(0deg) scale(1.02)" : `rotate(${((index % 5) - 2) * 1.5}deg)`, 
+                  zIndex: isSelected ? 100 : 1, 
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  cursor: "pointer"
+                }}
+              >
+                <div style={{ 
+                  background: "#fff", 
+                  padding: "12px", 
+                  borderRadius: "2px", 
+                  boxShadow: isSelected 
+                    ? "0 20px 40px rgba(0,0,0,0.2)" // 選択時は影を強くして浮いている感を出す
+                    : "0 6px 16px rgba(0,0,0,0.08)",
+                  border: isSelected ? `1px solid ${colors.accent}` : "1px solid transparent"
+                }}>
+                  <PhotoCard item={photo} />
+                  
+                  {/* ── ★詳細テキスト（選択された時だけ表示） ── */}
+                  {isSelected && (
+                    <div style={{ 
+                      marginTop: "16px", 
+                      paddingTop: "16px", 
+                      borderTop: `1px solid ${colors.line}`,
+                      animation: "fadeIn 0.3s ease" 
+                    }}>
+                      <p style={{ 
+                        fontSize: "14px", 
+                        color: colors.text, 
+                        lineHeight: 1.7, 
+                        margin: "0 0 12px 0",
+                        whiteSpace: "pre-wrap"
+                      }}>
+                        {photo.description || "詳細な観測記録はありません。"}
+                      </p>
+                      <div style={{ fontSize: "11px", color: colors.accent, textAlign: "center", fontWeight: "bold" }}>
+                        ▲ クリックで閉じる
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 元からあるフッター情報 */}
+                  <div style={{ 
+                    marginTop: "12px", 
+                    fontSize: "10px", 
+                    color: colors.subtext, 
+                    textAlign: "right", 
+                    fontFamily: fonts.mono, 
+                    borderTop: !isSelected ? `1px solid ${colors.line}` : "none", 
+                    paddingTop: !isSelected ? "8px" : "0" 
+                  }}>
+                    Observer ID: {photo.userId?.slice(0, 8)}...
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {/* ── 詳細ポップアップ（モーダル） ── */}
