@@ -3,7 +3,21 @@ import { PhotoMaterial, Collection } from "../types/index";
 import { useAuth } from "./useAuth";
 import { supabase } from "../lib/supabase";
 
+<<<<<<< Updated upstream
 const API_BASE_URL = "http://localhost:8000";
+=======
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_PYTHON_API_URL?: string;
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+}
+
+const API_BASE_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
+>>>>>>> Stashed changes
 
 export const useItems = () => {
   const [photos, setPhotos] = useState<PhotoMaterial[]>([]);
