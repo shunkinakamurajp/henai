@@ -136,3 +136,17 @@ async def save_exhibit(
     except Exception as e:
         print(f"！！！致命的なエラー発生！！！: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import BaseModel
+from gemini_logic import analyze_tags_tendency, analyze_image_with_gemini # 追加
+
+class TagAnalysisRequest(BaseModel):
+    tags: list[str]
+
+@app.post("/analyze-tendency")
+async def analyze_tendency_endpoint(request: TagAnalysisRequest):
+    if not request.tags:
+        return {"analysis": "まだ標本が少ないようです。"}
+    
+    analysis_text = analyze_tags_tendency(request.tags)
+    return {"analysis": analysis_text}

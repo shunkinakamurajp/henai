@@ -64,3 +64,30 @@ def analyze_image_with_gemini(image_data_base64, existing_tags=[]):
         print(f"Gemini解析エラー詳細: {e}")
     
     return []
+
+def analyze_tags_tendency(tags_list):
+    """
+    タグのリストからユーザーの傾向をプロファイリングする
+    """
+    # モデルの準備（既存のロジックを流用）
+    model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+    
+    tags_string = ", ".join(tags_list)
+    prompt = f"""
+あなたは「偏愛図鑑」の司書です。
+ユーザーが記録した以下のタグ一覧から、その人の感性の傾向や美学を分析してください。
+
+タグリスト: {tags_string}
+
+【出力ルール】
+1. 「【称号】：本文」という形式で出力してください。
+2. 称号は10文字程度、本文は150文字程度の文学的で洞察に満ちた表現にしてください。
+3. 単なる統計報告ではなく、ユーザーの「視点」や「こだわり」を読み解くプロファイリングを行ってください。
+"""
+
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"傾向分析エラー: {e}")
+        return "【静かなる観測者】：あなたの記録は、日常の中に潜む微かな光を捉えようとしています。"

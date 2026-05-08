@@ -12,6 +12,34 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('GUEST'); // デフォルトはGUEST
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string>("書斎の記録を読み解いています...");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // ✨ AIと通信して分析結果をもらう処理を追加
+useEffect(() => {
+  const fetchAnalysis = async () => {
+    if (topTagsData.length < 2) return; // データが少ない時はやめる
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('http://localhost:8000/analyze-tendency', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: topTagsData.map(t => t.tag) }),
+      });
+      const data = await response.json();
+      setAiAnalysis(data.analysis);
+    } catch (err) {
+      setAiAnalysis("現在は静かに観測を続けています。");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // タグの合計数が変わるたびに（または3回に1回）実行
+  if (totalCount > 0) {
+    fetchAnalysis();
+  }
+}, [totalCount]); // totalCountが変わったら実行
 
   const LEFT_FULL   = 220;
   const LEFT_MINI   = 72;
@@ -130,14 +158,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return part;
   }).join(", ");
 
-  const aiSuggestion = topTagsData.length > 0 
-    ? `「${topTagsData[0].tag}」への関心が特に高まっているようです。`
-    : `日常の気になるものを記録しましょう。`;
-
-  // 称号の表示もログイン状態に合わせる
-  const aiTitles = isLoggedIn && topTagsData.length >= 2 
-    ? [`${topTagsData[0].tag}の探求者`, `${topTagsData[1].tag}の愛愛好家`] 
-    : ["称号を探索中", "称号を探索中"];
+  
 
   const profileImageUrl = ""; 
 
@@ -305,9 +326,30 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </section>
 
           <section>
-            <h4 style={{ color: colors.subtext, marginBottom: '16px', fontSize: '13px' }}>AIサジェスト</h4>
-            <div style={{ fontSize: '12px', backgroundColor: 'white', padding: '16px', borderRadius: '12px', border: `1px solid ${colors.border}`, lineHeight: '1.6' }}>
-              {aiSuggestion}
+            <h4 style={{ color: colors.subtext, marginBottom: '16px', fontSize: '13px' }}>AI傾向分析</h4>
+            <div style={{ 
+              fontSize: '12px', backgroundColor: 'white', padding: '18px', 
+              borderRadius: '16px', border: `1px solid ${colors.border}`, 
+              lineHeight: '1.8', minHeight: '80px',
+              transition: 'all 0.3s', opacity: isAnalyzing ? 0.6 : 1
+            }}>
+            {isAnalyzing ? (
+              <div style={{ textAlign: 'center', color: colors.subtext }}>司書が思索に耽っています...</div>
+            ) : (
+            <>
+            {/* 「：」がある場合は称号として強調表示する */}
+            {aiAnalysis.includes('：') ? (
+              <>
+              <div style={{ fontWeight: 'bold', color: colors.accent, marginBottom: '6px', fontSize: '14px' }}>
+                {aiAnalysis.split('：')[0].replace(/【|】/g, '')}
+              </div>
+              <div style={{ color: colors.text }}>{aiAnalysis.split('：')[1]}</div>
+            </>
+            ) : (
+              <div>{aiAnalysis}</div>
+            )}
+            </>
+            )}
             </div>
           </section>
         </div>
