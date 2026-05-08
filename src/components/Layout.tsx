@@ -132,11 +132,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return part;
   }).join(", ");
 
-   // ✨ AIと通信して分析結果をもらう処理を追加
+  // 1. 関数の外、またはコンポーネント内で useRef を定義
+const lastAnalyzedCount = React.useRef(0);
+
+// ...
+
 useEffect(() => {
   const fetchAnalysis = async () => {
-    if (topTagsData.length < 2) return; // データが少ない時はやめる
+    // すでに分析中、またはタグの数に変更がない場合は何もしない
+    if (isAnalyzing || totalCount === lastAnalyzedCount.current || totalCount < 2) {
+      return;
+    }
+
+    lastAnalyzedCount.current = totalCount; // 現在の数を記録（リクエスト前にロック）
     setIsAnalyzing(true);
+
     try {
       const apiUrl = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/analyze-tendency`, {
@@ -144,20 +154,22 @@ useEffect(() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: topTagsData.map(t => t.tag) }),
       });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+
       const data = await response.json();
       setAiAnalysis(data.analysis);
     } catch (err) {
-      setAiAnalysis("現在は静かに観測を続けています。");
+      console.error("AI分析の取得に失敗:", err);
+      // エラー時は記録を戻して、次回再試行できるようにする
+      lastAnalyzedCount.current = 0; 
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // タグの合計数が変わるたびに（または3回に1回）実行
-  if (totalCount > 0) {
-    fetchAnalysis();
-  }
-}, [totalCount, topTagsData]); // totalCountが変わったら実行
+  fetchAnalysis();
+}, [totalCount]);
 
   const profileImageUrl = ""; 
 
