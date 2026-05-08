@@ -21,11 +21,20 @@ export default function Observation() {
     return [...otherPhotos].sort(() => Math.random() - 0.5);
   }, [otherPhotos]);
 
-  // 他人の投稿から、タグのリストを生成
+  // タグのリストをランダムに15個だけ抽出
   const allTags = useMemo(() => {
-    const tags = shuffledPhotos.flatMap((p) => [...(p.aiTags || []), ...(p.tags || [])].map((t) => t.replace(/^#/, "")));
-    return [...new Set(tags)];
-  }, [shuffledPhotos]);
+    // 1. 全ての写真から全タグを重複なしで取り出す
+  const tags = otherPhotos.flatMap((p) => 
+    [...(p.aiTags || []), ...(p.tags || [])].map((t) => t.replace(/^#/, ""))
+  );
+  const uniqueTags = [...new Set(tags)];
+
+  // 2. タグをシャッフルして、上位15個（またはお好みの数）に絞る
+  // .slice(0, 15) を入れることで「タグが多すぎる」問題も同時に解決します
+  return uniqueTags
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 15); 
+  }, [otherPhotos]); // 写真データが変わった時だけ再計算
 
   // フィルタリング後の他者の投稿
   const filteredPhotos = useMemo(() => {
