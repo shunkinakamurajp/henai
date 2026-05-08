@@ -20,30 +20,45 @@ export default function Zukan() {
     const fetchBoards = async () => {
       if (!user) {
         setBoards([]);
-        setBoardsLoading(false);
         return;
       }
 
-      setBoardsLoading(true);
       const { data, error } = await supabase
         .from("saved_boards")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
+      // ★ここがスパイ！取得結果をコンソールに出します
+      console.log("🕵️ Supabaseからの取得データ:", data);
+
       if (error) {
         console.error("図鑑データの取得に失敗しました:", error.message);
       } else if (data) {
-        setBoards(data as SavedBoard[]);
-        if (data.length > 0 && !activeId) {
-          setActiveId(data[0].id);
+        // ★ここが超重要！ DBのスネークケースをキャメルケースに変換
+        const formattedBoards = data.map((b: any) => ({
+          id: b.id,
+          userId: b.user_id,         // user_id を userId に
+          title: b.title,
+          comment: b.comment,
+          condition: b.condition,
+          offsets: b.offsets,
+          createdAt: b.created_at,   // created_at を createdAt に
+        }));
+        
+        console.log("🔄 変換後のデータ:", formattedBoards);
+        
+        setBoards(formattedBoards); // 変換したデータをセット！
+        
+        // 初期表示用に最初のボードをアクティブにする
+        if (formattedBoards.length > 0 && !activeId) {
+          setActiveId(formattedBoards[0].id);
         }
       }
-      setBoardsLoading(false);
     };
 
     fetchBoards();
-  }, [user]); // activeId は依存配列から外した方が安定します
+  }, [user]);
 
   // 全体のローディング状態
   const isLoading = itemsLoading || boardsLoading;
