@@ -114,11 +114,8 @@ export default function Photos() {
 
   const filtered = useMemo((): PhotoMaterial[] => {
     let r = [...(photos || [])];
-<<<<<<< Updated upstream
     if (cond.tags && cond.tags.length > 0)
-=======
     if (cond.tags.length > 0)
->>>>>>> Stashed changes
       r = r.filter((p) => cond.tags.every((t) => (p.aiTags ?? p.tags ?? []).map((s: string) => s.replace(/^#/, "")).includes(t)));
     if (cond.dateFrom) r = r.filter((p) => p.date && p.date >= cond.dateFrom);
     if (cond.dateTo) r = r.filter((p) => p.date && p.date <= cond.dateTo);

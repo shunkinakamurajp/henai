@@ -3,21 +3,19 @@ import { PhotoMaterial, Collection } from "../types/index";
 import { useAuth } from "./useAuth";
 import { supabase } from "../lib/supabase";
 
-<<<<<<< Updated upstream
-const API_BASE_URL = "http://localhost:8000";
-=======
+// --- 修正箇所：ここにあった1回目の宣言を削除しました ---
+
 declare global {
   interface ImportMetaEnv {
     readonly VITE_PYTHON_API_URL?: string;
   }
-
   interface ImportMeta {
     readonly env: ImportMetaEnv;
   }
 }
 
+// 宣言はここ1回だけにします
 const API_BASE_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
->>>>>>> Stashed changes
 
 export const useItems = () => {
   const [photos, setPhotos] = useState<PhotoMaterial[]>([]);
@@ -63,25 +61,24 @@ export const useItems = () => {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
-        setPhotos([]);      // 写真データを空にする
-        setCollections([]); // 図鑑データを空にする
-        setCurrentUserId(null); // ユーザーIDを消す
+        setPhotos([]);
+        setCollections([]);
+        setCurrentUserId(null);
       } else if (event === 'SIGNED_IN') {
-        fetchData(); // ログインしたら即座に取得
+        fetchData();
       }
     });
-    // 5秒おきに裏側でチェック
+
     const timer = setInterval(() => {
       setPhotos(currentPhotos => {
         const needsUpdate = currentPhotos.some(p => !p.tags || p.tags.length === 0);
         if (needsUpdate) {
-          fetchData(true); // silentモードで更新
+          fetchData(true);
         }
         return currentPhotos;
       });
     }, 5000);
 
-    // ★修正：return ブロック（ {} ）で囲んで両方実行されるようにしました
     return () => {
       clearInterval(timer);
       window.removeEventListener('items_updated', handleItemsUpdated);
@@ -118,17 +115,10 @@ export const useItems = () => {
     }
   };
 
-  // ★追加：テキスト編集などの際に呼ばれる更新用関数
   const updatePhoto = async (id: string | number, updates: any) => {
-    // 画面上の State を即座に更新する
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    
-    // サイドメニュー等の統計に更新を通知
     window.dispatchEvent(new Event('items_updated'));
-
-    // ※将来的にバックエンド（DB）も更新する場合は、ここに fetch 処理を追加します
   };
 
-  // ★追加：return の最後に updatePhoto を含める
   return { photos, myPhotos, otherPhotos, currentUserId, collections, loading, error, addPhoto, refetch: fetchData, updatePhoto };
 };
