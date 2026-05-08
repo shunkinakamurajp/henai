@@ -6,12 +6,16 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from supabase import create_client, Client
+
+# backendディレクトリ内にあることを想定
 from gemini_logic import analyze_image_with_gemini
 
+# .envの読み込み（ローカル開発用）
 load_dotenv()
 
 app = FastAPI()
 
+# CORS設定：フロントエンド（React/Vite）からのアクセスを許可
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,37 +24,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 環境変数の取得
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+# 環境変数が未設定の場合の早期エラーチェック
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("CRITICAL ERROR: SUPABASE_URL or SUPABASE_KEY is not set in environment variables.")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+@app.get("/")
+async def root():
+    return {"message": "Henai Zukan API is running"}
 
 @app.get("/collections")
 async def get_collections():
-    # まだ実装していない場合は、とりあえず空リストを返すことで 404 を防ぎます
     return {"collections": []}
 
 @app.get("/photos")
 async def get_photos():
     try:
         # 確実にタグを取得するためのセレクト文
-        # リレーション名が 'exhibit_tags' であることを確認してください
         res = supabase.table("exhibits").select(
             "id, user_id, image_url, text, created_at, exhibit_tags(tags(name))"
         ).order("created_at", desc=True).execute()
 
-        # デバッグ用：Supabaseから届いた生のデータ構造をターミナルに表示
-        # タグが出ない原因が「リレーション名の不一致」なら、ここで空のデータが見えるはずです
         if res.data:
             print(f"Debug Raw Data (Row 0): {res.data[0]}")
 
         formatted = []
         for row in res.data:
             tag_names = []
-            # exhibit_tags が取得できているか確認
             ex_tags = row.get("exhibit_tags")
             if ex_tags and isinstance(ex_tags, list):
                 for et in ex_tags:
-                    # tagsテーブルのnameを取り出す
                     tag_obj = et.get("tags")
                     if tag_obj and "name" in tag_obj:
                         tag_names.append(tag_obj["name"])
@@ -106,29 +114,21 @@ async def save_exhibit(
         exhibit_id = db_res.data[0]["id"]
         print(f"Exhibit作成完了 ID: {exhibit_id}")
 
-        # 5. タグ保存ループ (ここが動いているかチェック)
-        if not ai_tags:
-            print("警告: AIタグが空のため、タグ保存をスキップします。")
-
-        for t_name in ai_tags:
-            print(f"処理中のタグ: {t_name}")
-            # タグの存在確認
-            tag_data = supabase.table("tags").select("id").eq("name", t_name).execute()
-            
-            if not tag_data.data:
-                print(f"新規タグとして登録: {t_name}")
-                new_tag = supabase.table("tags").insert({"name": t_name}).execute()
-                tag_id = new_tag.data[0]["id"]
-            else:
-                tag_id = tag_data.data[0]["id"]
-            
-            # 中間テーブル紐付け
-            print(f"中間テーブルに紐付け試行: exhibit:{exhibit_id}, tag:{tag_id}")
-            link_res = supabase.table("exhibit_tags").insert({
-                "exhibit_id": exhibit_id,
-                "tag_id": tag_id
-            }).execute()
-            print(f"紐付け結果: {link_res.data}")
+        # 5. タグ保存
+        if ai_tags:
+            for t_name in ai_tags:
+                tag_data = supabase.table("tags").select("id").eq("name", t_name).execute()
+                
+                if not tag_data.data:
+                    new_tag = supabase.table("tags").insert({"name": t_name}).execute()
+                    tag_id = new_tag.data[0]["id"]
+                else:
+                    tag_id = tag_data.data[0]["id"]
+                
+                supabase.table("exhibit_tags").insert({
+                    "exhibit_id": exhibit_id,
+                    "tag_id": tag_id
+                }).execute()
 
         print("--- 保存プロセス完了 ---\n")
         return {"status": "success"}
@@ -136,15 +136,3 @@ async def save_exhibit(
     except Exception as e:
         print(f"！！！致命的なエラー発生！！！: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], # 開発時は全て許可。本番はVercelのURLを指定するのが安全
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
