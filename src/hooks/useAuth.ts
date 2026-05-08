@@ -1,8 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { User } from "@supabase/supabase-js"; // 型定義を追加
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null); // ★現在のユーザー状態を保持
+
+  // ★ 認証状態を監視するエフェクトを追加
+  useEffect(() => {
+    // 1. 初回マウント時に現在のセッションを確認
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // 2. ログイン・ログアウトなどの状態変化をリッスンする
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null); // 状態が変わるたびに user を更新
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // ログイン
   const login = async (email: string, password: string) => {
@@ -13,15 +32,14 @@ export const useAuth = () => {
     return { success: true, session: data.session };
   };
 
-  // ★ アカウント作成（新規追加）
+  // アカウント作成
   const signUp = async (email: string, password: string, username: string) => {
     setLoading(true);
-    // 1. Supabase Auth にユーザーを登録
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: username }, // メタデータにユーザー名を保存
+        data: { display_name: username },
       },
     });
 
@@ -30,34 +48,37 @@ export const useAuth = () => {
       return { success: false, error: error.message };
     }
 
-    // 2. プロフィールテーブル(profiles)にユーザー情報を登録（ER図の定義に合わせる）
     if (data.user) {
       const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert({ 
-        id: data.user.id, 
-        username: username, // ※ DBのカラム名が "name" ならここを name に変更してください
-      }, {
-        onConflict: 'id' // idが重複した場合は更新する
-      });
+        .from("profiles")
+        .upsert({ 
+          id: data.user.id, 
+          username: username,
+        }, {
+          onConflict: 'id'
+        });
     
-    if (profileError) {
-      console.error("Profile Error Detail:", profileError); // デバッグ用に詳細を表示
-      setLoading(false);
-      return { success: false, error: "プロフィール作成に失敗しました" };
+      if (profileError) {
+        console.error("Profile Error Detail:", profileError);
+        setLoading(false);
+        return { success: false, error: "プロフィール作成に失敗しました" };
+      }
     }
-  }
 
-  setLoading(false);
-  return { success: true };
-};
+    setLoading(false);
+    return { success: true };
+  };
 
-  const logout = async () => { await supabase.auth.signOut(); };
+  const logout = async () => { 
+    await supabase.auth.signOut(); 
+    setUser(null); // 明示的にnullにする
+  };
 
   const getToken = async () => {
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token ?? null;
   };
 
-  return { login, signUp, logout, getToken, loading };
+  // ★ user を戻り値に追加
+  return { user, login, signUp, logout, getToken, loading };
 };
