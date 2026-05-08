@@ -77,6 +77,18 @@ export default function Photos() {
     return localStorage.getItem("panelOpen") === "true";
   });
 
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+  const [boardWidth, setBoardWidth] = useState(800);
+
+  useEffect(() => {
+    if (!boardContainerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      setBoardWidth(entries[0].contentRect.width);
+    });
+    observer.observe(boardContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("photoCond", JSON.stringify(cond));
   }, [cond]);
@@ -103,7 +115,7 @@ export default function Photos() {
   const filtered = useMemo((): PhotoMaterial[] => {
     let r = [...(photos || [])];
     if (cond.tags && cond.tags.length > 0)
-      r = r.filter((p) => cond.tags.every((t) => (p.aiTags ?? p.tags ?? []).map((s) => s.replace(/^#/, "")).includes(t)));
+      r = r.filter((p) => cond.tags.every((t) => (p.aiTags ?? p.tags ?? []).map((s: string) => s.replace(/^#/, "")).includes(t)));
     if (cond.dateFrom) r = r.filter((p) => p.date && p.date >= cond.dateFrom);
     if (cond.dateTo) r = r.filter((p) => p.date && p.date <= cond.dateTo);
     return r.slice(0, cond.maxCount);
@@ -112,9 +124,11 @@ export default function Photos() {
   const size = SIZES[cond.sizeIdx];
   const mixed = cond.sizeIdx === 3;
 
+  // 1. まず board を計算して完成させる
   const board = useMemo((): BoardItem[] => {
     const rand = seededRand(42);
-    const cols = Math.max(2, Math.floor(1060 / ((size.w || 160) + 24)));
+    const cols = Math.max(1, Math.floor((boardWidth - 80) / ((size.w || 160) + 28)));
+
     return filtered.map((item, i) => {
       const r = mixed ? seededRand(Number(item.id.toString().replace(/\D/g, ''))) : rand;
       const w = mixed ? [120, 140, 160, 190, 210][Math.floor(r() * 5)] : size.w;
@@ -129,11 +143,10 @@ export default function Photos() {
         pinColor: PIN_COLORS[i % PIN_COLORS.length],
       };
     });
-  }, [filtered, size, mixed]);
+  }, [filtered, size, mixed, boardWidth]);
 
-  const boardW = Math.max(860, ...board.map((b) => b.baseX + (offsets[b.id]?.dx ?? 0) + b.w + 80));
+  // 2. 完成した board を使って、その直後に boardH を計算する
   const boardH = Math.max(460, ...board.map((b) => b.baseY + (offsets[b.id]?.dy ?? 0) + b.h + 80));
-
   const lightbox = lightboxIdx !== null ? filtered[lightboxIdx] : null;
   const closeLightbox = () => { setLightboxIdx(null); setIsEditingText(false); };
   const goPrev = () => { setLightboxIdx((i) => (i !== null && i > 0 ? i - 1 : i)); setIsEditingText(false); };
@@ -176,6 +189,10 @@ export default function Photos() {
           <p style={{ fontSize: 12, color: C.sub }}>あなた自身の記録を整理する場所です。画像をクリックして言葉を添えられます。</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          {/* ★ 追加：ドラッグした移動履歴（offsets）を空にして、元のグリッドに整列させるボタン */}
+          <button onClick={() => setOffsets({})} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 12, cursor: "pointer", fontFamily: F.sans }}>
+            🔄 配置リセット
+          </button>
           <button onClick={() => setPanelOpen(!panelOpen)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: panelOpen ? C.accent : C.bg, color: panelOpen ? "#fff" : C.sub, fontSize: 12, cursor: "pointer", fontFamily: F.sans }}>
             {panelOpen ? "▲ 条件を閉じる" : "▼ 条件を設定"}
           </button>
@@ -214,11 +231,24 @@ export default function Photos() {
         </div>
       )}
 
-      <div style={{ overflowX: "auto", overflowY: "auto", borderRadius: 12, maxHeight: "62vh", boxShadow: "0 4px 24px rgba(0,0,0,.15)" }}>
-        <div style={{ width: boardW, height: boardH, background: cond.corkColor, position: "relative", backgroundImage: ["repeating-linear-gradient(45deg,transparent,transparent 12px,rgba(0,0,0,.025) 12px,rgba(0,0,0,.025) 13px)", "repeating-linear-gradient(-45deg,transparent,transparent 12px,rgba(0,0,0,.018) 12px,rgba(0,0,0,.018) 13px)"].join(","), borderRadius: 12 }}>
-          {loading && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.6)", fontSize: 14 }}>写真を準備中...</div>}
+      {/* ★親の div で、縦方向のスクロールを許可し、横方向は隠す */}
+      <div ref={boardContainerRef} style={{
+        flex: 1, minHeight: "60vh", maxHeight: "72dvh", // ★maxHeight を追加して高さを制限する（重要）
+        borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,.15)",
+        overflowY: "auto", // ★縦スクロールは復活！
+        overflowX: "hidden", // ★横スクロールは消す！
+      }}>
+        {/* ★ボード本体の div で、幅を親に合わせ、高さはコンテンツに合わせる */}
+        <div style={{
+          width: "100%",
+          height: boardH,
+          backgroundColor: cond.corkColor, // ★ background ではなく backgroundColor を使用
+          position: "relative",
+          backgroundImage: ["repeating-linear-gradient(45deg,transparent,transparent 12px,rgba(0,0,0,.025) 12px,rgba(0,0,0,.025) 13px)", "repeating-linear-gradient(-45deg,transparent,transparent 12px,rgba(0,0,0,.018) 12px,rgba(0,0,0,.018) 13px)"].join(","),
+          backgroundBlendMode: "multiply", // ★ パターンと色を合成するための指定を追加
+          borderRadius: 12
+        }}>
           {!loading && filtered.length === 0 && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.4)", fontSize: 14 }}>条件に合う記録がありません</div>}
-          
           {!loading && board.map((item, i) => (
             <DraggablePin key={item.id} item={item} offset={offsets[item.id] ?? { dx: 0, dy: 0 }} onOffsetChange={(o) => setOffsets((prev) => ({ ...prev, [item.id]: o }))} onClick={() => setLightboxIdx(i)} />
           ))}
@@ -268,10 +298,14 @@ export default function Photos() {
 function DraggablePin({ item, offset, onOffsetChange, onClick }: { item: BoardItem; offset: { dx: number; dy: number }; onOffsetChange: (o: { dx: number; dy: number }) => void; onClick: () => void; }) {
   const [dragging, setDragging] = useState(false);
   const startRef = useRef<{ mx: number; my: number; dx: number; dy: number; } | null>(null);
+  
+  // ★ 追加：ドラッグ（移動）したかを記憶するフラグ
+  const hasMovedRef = useRef(false); 
 
   const onMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDragging(true);
+    hasMovedRef.current = false; // ★ マウスを押した瞬間に「移動していない」にリセット
     startRef.current = { mx: e.clientX, my: e.clientY, dx: offset.dx, dy: offset.dy };
   };
 
@@ -279,13 +313,19 @@ function DraggablePin({ item, offset, onOffsetChange, onClick }: { item: BoardIt
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
       if (!startRef.current) return;
+      
+      // ★ ほんの少し（3px以上）でも動かしたら「移動した」と判定する
+      if (Math.abs(e.clientX - startRef.current.mx) > 3 || Math.abs(e.clientY - startRef.current.my) > 3) {
+        hasMovedRef.current = true;
+      }
+      
       onOffsetChange({ dx: startRef.current.dx + e.clientX - startRef.current.mx, dy: startRef.current.dy + e.clientY - startRef.current.my });
     };
     const onUp = () => setDragging(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [dragging]);
+  }, [dragging]); // ※エディタで波線が出ても動作には問題ありません
 
   const x = item.baseX + offset.dx + 40;
   const y = item.baseY + offset.dy + 40;
@@ -293,7 +333,13 @@ function DraggablePin({ item, offset, onOffsetChange, onClick }: { item: BoardIt
   return (
     <div
       onMouseDown={onMouseDown}
-      onClick={() => !dragging && onClick()}
+      // ★ ここを変更：ドラッグ（移動）していなければクリック処理を実行する
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!hasMovedRef.current) {
+          onClick();
+        }
+      }}
       style={{
         position: "absolute", left: x, top: y, width: item.w,
         transform: `rotate(${item.rot}deg)`,

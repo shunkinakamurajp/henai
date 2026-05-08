@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project偏愛</title>
+    <style>
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* アプリ全体の意図しないスクロールを防ぐ */
+      }
+      /* 全ての要素の幅計算にpaddingやborderを含める（レイアウト崩れ防止） */
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

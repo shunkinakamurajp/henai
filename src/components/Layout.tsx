@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase.ts';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const { photos, collections } = useItems(); 
+  const { photos, myPhotos, collections } = useItems(); 
   const { getToken } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('GUEST'); // デフォルトはGUEST
@@ -20,11 +20,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const BREAK_COLLAPSE_LEFT = 1300;
   const BREAK_CLOSE_RIGHT   = 1000;
 
+  // 左サイドバー用
   const [userOverride,  setUserOverride]  = useState<boolean | null>(null);
   const [autoCollapsed, setAutoCollapsed] = useState(false);
-  const [isRightOpen,   setIsRightOpen]   = useState(true);
+  
+  // ★追加・修正：右サイドバー用（左と同じ仕組みにする）
+  const [rightOverride, setRightOverride] = useState<boolean | null>(null);
+  const [autoRightOpen, setAutoRightOpen] = useState(true);
 
   const isLeftCollapsed = userOverride !== null ? userOverride : autoCollapsed;
+  const isRightOpen = rightOverride !== null ? rightOverride : autoRightOpen;
 
   useEffect(() => {
     // 共通の更新処理
@@ -32,7 +37,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       // 1. ウィンドウサイズの判定
       const w = window.innerWidth;
       setAutoCollapsed(w < BREAK_COLLAPSE_LEFT);
-      setIsRightOpen(w >= BREAK_CLOSE_RIGHT);
+      setAutoRightOpen(w >= BREAK_CLOSE_RIGHT);
 
       // トークンチェック
       const token = await getToken();
@@ -102,8 +107,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     : allNavItems.filter(item => item.path !== '/record');
 
   // ── 統計・AI処理 ──
-  // (中略：以前のロジックを維持)
-  const allTags = [...photos.flatMap(p => p.tags || []), ...collections.flatMap(c => c.aiTags || [])];
+  const allTags = [...myPhotos.flatMap(p => p.tags || []), ...collections.flatMap(c => c.aiTags || [])];
   const tagCounts = allTags.reduce((acc, tag) => {
     const cleanTag = String(tag).replace(/^#/, "");
     acc[cleanTag] = (acc[cleanTag] || 0) + 1;
@@ -139,7 +143,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div style={{
-      display: 'flex', height: '100vh', width: '100vw',
+      display: 'flex', height: '100dvh', width: '100%',
       backgroundColor: colors.bg, color: colors.text,
       fontFamily: fonts.sans, overflow: 'hidden', position: 'relative',
     }}>
@@ -155,6 +159,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         > ▶ </button>
+      )}
+
+      {/* 右サイドバー復活ボタン */}
+      {!isRightOpen && (
+        <button
+          onClick={() => setRightOverride(true)}
+          style={{
+            position: 'absolute', right: '20px', top: '20px', zIndex: 100,
+            background: colors.card, border: `1px solid ${colors.border}`,
+            borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)', color: colors.accent,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        > ◀ </button>
       )}
 
       {/* 1. 左サイドバー */}
@@ -259,7 +277,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         display: 'flex', flexDirection: 'column', zIndex: 20,
       }}>
         <div style={{ minWidth: `${RIGHT_WIDTH}px`, height: '100%', position: 'relative', padding: '70px 24px 24px' }}>
-          <button onClick={() => setIsRightOpen(false)} style={{ position: 'absolute', top: '20px', left: '16px', background: 'none', border: 'none', cursor: 'pointer', color: colors.subtext }}>▶</button>
+          <button onClick={() => setRightOverride(false)} style={{ position: 'absolute', top: '20px', left: '16px', background: 'none', border: 'none', cursor: 'pointer', color: colors.subtext }}>▶</button>
           
           <section style={{ marginBottom: '40px' }}>
             <h4 style={{ color: colors.subtext, marginBottom: '20px', fontSize: '13px' }}>記録の傾向</h4>

@@ -33,18 +33,24 @@ export const useAuth = () => {
     // 2. プロフィールテーブル(profiles)にユーザー情報を登録（ER図の定義に合わせる）
     if (data.user) {
       const { error: profileError } = await supabase
-        .from("profiles")
-        .insert([{ id: data.user.id, username: username }]);
-      
-      if (profileError) {
-        setLoading(false);
-        return { success: false, error: "プロフィール作成に失敗しました" };
-      }
+      .from("profiles")
+      .upsert({ 
+        id: data.user.id, 
+        username: username, // ※ DBのカラム名が "name" ならここを name に変更してください
+      }, {
+        onConflict: 'id' // idが重複した場合は更新する
+      });
+    
+    if (profileError) {
+      console.error("Profile Error Detail:", profileError); // デバッグ用に詳細を表示
+      setLoading(false);
+      return { success: false, error: "プロフィール作成に失敗しました" };
     }
+  }
 
-    setLoading(false);
-    return { success: true };
-  };
+  setLoading(false);
+  return { success: true };
+};
 
   const logout = async () => { await supabase.auth.signOut(); };
 

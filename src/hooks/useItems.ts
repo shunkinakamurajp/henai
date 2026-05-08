@@ -42,6 +42,20 @@ export const useItems = () => {
   useEffect(() => {
     fetchData(); // 初回ロード
 
+    const handleItemsUpdated = () => {
+      fetchData(true);
+    };
+    window.addEventListener('items_updated', handleItemsUpdated);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setPhotos([]);      // 写真データを空にする
+        setCollections([]); // 図鑑データを空にする
+        setCurrentUserId(null); // ユーザーIDを消す
+      } else if (event === 'SIGNED_IN') {
+        fetchData(); // ログインしたら即座に取得
+      }
+    });
     // 5秒おきに裏側でチェック
     const timer = setInterval(() => {
       setPhotos(currentPhotos => {
@@ -53,7 +67,11 @@ export const useItems = () => {
       });
     }, 5000);
 
-    return () => clearInterval(timer);
+    // ★修正：return ブロック（ {} ）で囲んで両方実行されるようにしました
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('items_updated', handleItemsUpdated);
+    };
   }, []);
 
   const myPhotos = useMemo(() => 
@@ -86,5 +104,17 @@ export const useItems = () => {
     }
   };
 
-  return { photos, myPhotos, otherPhotos, currentUserId, collections, loading, error, addPhoto, refetch: fetchData };
+  // ★追加：テキスト編集などの際に呼ばれる更新用関数
+  const updatePhoto = async (id: string | number, updates: any) => {
+    // 画面上の State を即座に更新する
+    setPhotos(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    
+    // サイドメニュー等の統計に更新を通知
+    window.dispatchEvent(new Event('items_updated'));
+
+    // ※将来的にバックエンド（DB）も更新する場合は、ここに fetch 処理を追加します
+  };
+
+  // ★追加：return の最後に updatePhoto を含める
+  return { photos, myPhotos, otherPhotos, currentUserId, collections, loading, error, addPhoto, refetch: fetchData, updatePhoto };
 };

@@ -22,8 +22,8 @@ const fonts = {
 /**
  * コンポーネント: フォトカード
  */
-const PhotoCard = ({ item }: { item: any }) => (
-  <div style={{
+const PhotoCard = ({ item, onClick }: { item: any; onClick: () => void }) => (
+  <div onClick={onClick} style={{
     background: "#fff",
     padding: "10px",
     borderRadius: "8px",
@@ -109,6 +109,27 @@ export default function Home() {
   const { myPhotos, loading } = useItems();
   const [boards, setBoards] = useState<any[]>([]);
   const navigate = useNavigate();
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  
+  // ホームで表示する4件を切り出す
+  const displayPhotos = myPhotos ? myPhotos.slice(0, 4) : [];
+  const lightbox = lightboxIdx !== null ? displayPhotos[lightboxIdx] : null;
+
+  const closeLightbox = () => setLightboxIdx(null);
+  const goPrev = () => setLightboxIdx((i) => (i !== null && i > 0 ? i - 1 : i));
+  const goNext = () => setLightboxIdx((i) => (i !== null && i < displayPhotos.length - 1 ? i + 1 : i));
+
+  // キーボードの矢印キーで画像を切り替える処理
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "Escape") closeLightbox();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [lightboxIdx, displayPhotos.length]);
 
   useEffect(() => {
     const rawBoards = localStorage.getItem("savedBoards");
@@ -158,8 +179,8 @@ export default function Home() {
                   paddingTop: 16,
                 }}
               >
-                {myPhotos.slice(0, 4).map((photo: any) => (
-                  <PhotoCard key={photo.id} item={photo} />
+                {displayPhotos.map((photo: any, index: number) => (
+                  <PhotoCard key={photo.id} item={photo} onClick={() => setLightboxIdx(index)} />
                 ))}
               </div>
             )}
@@ -197,6 +218,39 @@ export default function Home() {
             )}
           </section>
         </>
+      )}
+
+      {lightbox && lightboxIdx !== null && (
+        <div onClick={closeLightbox} style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
+          
+          <button 
+            onClick={(e) => { e.stopPropagation(); goPrev(); }} 
+            disabled={lightboxIdx === 0} 
+            style={{ position: "absolute", left: 24, width: 44, height: 44, borderRadius: "50%", background: lightboxIdx === 0 ? "rgba(255,255,255,.1)" : "rgba(255,255,255,.85)", border: "none", fontSize: 20, cursor: lightboxIdx === 0 ? "default" : "pointer", color: colors.text, zIndex: 2001 }}
+          >‹</button>
+
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "transparent", padding: "16px", maxWidth: 800, width: "90%", cursor: "default", display: "flex", flexDirection: "column", gap: "12px", alignItems: "center" }}>
+            <img src={lightbox.imageUrl} alt="photo" style={{ maxWidth: "100%", maxHeight: "65vh", objectFit: "contain", borderRadius: 4, boxShadow: "0 10px 40px rgba(0,0,0,0.6)" }} />
+            <div style={{ width: "100%", maxWidth: 600, background: "#FFFDF5", borderRadius: 12, padding: "20px", marginTop: "10px", boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: 18, fontFamily: fonts.serif, color: colors.text }}>{lightbox.title || "無題の標本"}</h3>
+              <p style={{ margin: "0 0 12px 0", fontSize: 14, color: colors.subtext, lineHeight: 1.6 }}>{lightbox.memo || "まだ言葉が添えられていません。"}</p>
+              {lightbox.tags && lightbox.tags.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                  {lightbox.tags.map((t: string) => <span key={t} style={{ fontSize: 11, padding: "2px 8px", background: "rgba(166,138,97,0.1)", color: colors.accent, borderRadius: 999 }}>#{t}</span>)}
+                </div>
+              )}
+              {/* 編集はフォトページで行うように誘導 */}
+              <button onClick={() => navigate("/photos")} style={{ padding: "6px 14px", fontSize: 12, borderRadius: 6, border: `1px solid ${colors.border}`, background: "transparent", color: colors.subtext, float: "right", cursor: "pointer" }}>✏️ フォトページで編集</button>
+              <div style={{ clear: "both" }}></div>
+            </div>
+          </div>
+
+          <button 
+            onClick={(e) => { e.stopPropagation(); goNext(); }} 
+            disabled={lightboxIdx === displayPhotos.length - 1} 
+            style={{ position: "absolute", right: 24, width: 44, height: 44, borderRadius: "50%", background: lightboxIdx === displayPhotos.length - 1 ? "rgba(255,255,255,.1)" : "rgba(255,255,255,.85)", border: "none", fontSize: 20, cursor: lightboxIdx === displayPhotos.length - 1 ? "default" : "pointer", color: colors.text, zIndex: 2001 }}
+          >›</button>
+        </div>
       )}
     </div>
   );
