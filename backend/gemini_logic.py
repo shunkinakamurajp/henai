@@ -8,29 +8,30 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-def analyze_image_with_gemini(image_data_base64, existing_tags=[]):
-    print("--- Gemini解析プロセス開始 ---")
-    
-    # モデルの特定（ユーザー様の元のロジックを維持）
-    target_model = None
+def get_best_model():
+    """
+    環境で利用可能な最適なモデル名を返すヘルパー関数
+    """
     try:
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        for name in ["models/gemini-1.5-flash-latest", "models/gemini-1.5-flash", "models/gemini-1.5-pro"]:
+        # 優先度の高い順に試行
+        for name in ["models/gemini-1.5-flash", "gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-1.5-flash-latest"]:
             if name in available_models:
-                target_model = name
-                break
-        if not target_model:
-            target_model = available_models[0]
+                return name
+        return available_models[0] if available_models else "gemini-1.5-flash"
     except Exception as e:
         print(f"モデル一覧取得エラー: {e}")
-        target_model = "models/gemini-1.5-flash-latest"
+        return "gemini-1.5-flash"
 
+def analyze_image_with_gemini(image_data_base64, existing_tags=[]):
+    print("--- Gemini画像解析プロセス開始 ---")
+    
+    target_model = get_best_model()
     model = genai.GenerativeModel(target_model)
 
     if "," in image_data_base64:
         image_data_base64 = image_data_base64.split(",")[1]
 
-    # ★ 既存のタグがある場合、プロンプトに組み込む
     tags_context = ""
     if existing_tags:
         tags_context = f"\n[既存のタグリスト]\n{', '.join(existing_tags)}\n"
@@ -51,14 +52,10 @@ def analyze_image_with_gemini(image_data_base64, existing_tags=[]):
             prompt,
             {"mime_type": "image/jpeg", "data": image_data_base64}
         ])
-
-        print(f"Gemini生の応答: {response.text}")
         
         json_match = re.search(r'\[.*\]', response.text, re.DOTALL)
         if json_match:
-            tags = json.loads(json_match.group())
-            print(f"抽出成功（正規化済）: {tags}")
-            return tags
+            return json.loads(json_match.group())
             
     except Exception as e:
         print(f"Gemini解析エラー詳細: {e}")
@@ -69,8 +66,10 @@ def analyze_tags_tendency(tags_list):
     """
     タグのリストからユーザーの傾向をプロファイリングする
     """
-    # モデルの準備（既存のロジックを流用）
-    model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+    print("--- Gemini傾向分析プロセス開始 ---")
+    
+    target_model = get_best_model()
+    model = genai.GenerativeModel(target_model)
     
     tags_string = ", ".join(tags_list)
     prompt = f"""
