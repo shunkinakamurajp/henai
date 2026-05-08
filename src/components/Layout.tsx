@@ -259,11 +259,16 @@ useEffect(() => {
             </div>
           )}
 
-          {!isLeftCollapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
-              {aiTitles.map((title, i) => (
-                <div key={i} style={{ fontSize: '11px', color: colors.subtext }}>{title}</div>
-              ))}
+          {!isLeftCollapsed && aiAnalysis && aiAnalysis.includes('：') && (
+            <div style={{ paddingLeft: '4px', marginTop: '-8px', marginBottom: '8px' }}>
+              <div style={{ 
+                fontSize: '11px', 
+                color: colors.accent, 
+                fontWeight: 'bold',
+                letterSpacing: '0.05em' 
+              }}>
+                {aiAnalysis.split('：')[0].replace(/【|】/g, '')}
+              </div>
             </div>
           )}
 
