@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import TagFilter from "../components/TagFilter.tsx";
 import { PhotoMaterial, BoardCondition, SavedBoard } from "../types/index.ts";
 import { useItems } from "../hooks/useItems.ts";
+import { useAuth } from "../hooks/useAuth.ts";
+import { supabase } from "../lib/supabase";
 
 // --- デザイン定義 (一貫性のあるデザイン用) ---
 const F = {
@@ -358,21 +361,70 @@ function DraggablePin({ item, offset, onOffsetChange, onClick }: { item: BoardIt
 
 function SaveModal({ cond, offsets, onClose }: any) {
   const [title, setTitle] = useState("");
-  const save = () => {
+  const [isSaving, setIsSaving] = useState(false); // ★ 保存中の状態を追加
+  const { user } = useAuth(); // ★ ログイン中のユーザーを取得
+  const navigate = useNavigate();
+
+  const save = async () => {
     if (!title.trim()) return;
-    const board: SavedBoard = { id: crypto.randomUUID(), title: title.trim(), condition: cond, offsets, createdAt: new Date().toISOString() };
-    const existing = JSON.parse(localStorage.getItem("savedBoards") ?? "[]");
-    localStorage.setItem("savedBoards", JSON.stringify([board, ...existing]));
-    onClose();
+    if (!user) {
+      alert("保存するにはログインが必要です。");
+      return;
+    }
+
+    setIsSaving(true);
+
+    // ★ Supabaseの saved_boards テーブルにデータを挿入
+    const { error } = await supabase
+      .from("saved_boards")
+      .insert([
+        {
+          user_id: user.id,
+          title: title.trim(),
+          condition: cond,
+          offsets: offsets,
+        },
+      ]);
+
+    setIsSaving(false);
+
+    if (error) {
+      console.error("保存失敗:", error.message);
+      alert("図鑑の保存に失敗しました。");
+      return;
+    }
+
+    // 保存成功時の処理
+    onClose(); // モーダルを閉じる
+    navigate("/zukan"); // 図鑑ページへ自動遷移
   };
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: C.bg, borderRadius: 14, padding: "24px", width: 340 }}>
         <h3 style={{ fontFamily: F.serif, margin: "0 0 16px" }}>図鑑に保存</h3>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例：散歩の記録" style={{ width: "100%", padding: "10px", marginBottom: 20, borderRadius: 8, border: `1px solid ${C.border}`, outline: "none" }} />
+        <input 
+          value={title} 
+          onChange={(e) => setTitle(e.target.value)} 
+          placeholder="例：散歩の記録" 
+          disabled={isSaving}
+          style={{ width: "100%", padding: "10px", marginBottom: 20, borderRadius: 8, border: `1px solid ${C.border}`, outline: "none" }} 
+        />
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", cursor: "pointer" }}>キャンセル</button>
-          <button onClick={save} disabled={!title.trim()} style={{ flex: 1, padding: "10px", borderRadius: 8, background: title.trim() ? C.accent : C.border, color: "#fff", border: "none", fontWeight: "bold", cursor: title.trim() ? "pointer" : "default" }}>保存</button>
+          <button 
+            onClick={onClose} 
+            disabled={isSaving}
+            style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", cursor: isSaving ? "default" : "pointer" }}
+          >
+            キャンセル
+          </button>
+          <button 
+            onClick={save} 
+            disabled={!title.trim() || isSaving} 
+            style={{ flex: 1, padding: "10px", borderRadius: 8, background: title.trim() && !isSaving ? C.accent : C.border, color: "#fff", border: "none", fontWeight: "bold", cursor: title.trim() && !isSaving ? "pointer" : "default" }}
+          >
+            {isSaving ? "保存中..." : "保存"}
+          </button>
         </div>
       </div>
     </div>
