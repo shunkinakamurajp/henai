@@ -361,20 +361,24 @@ function DraggablePin({ item, offset, onOffsetChange, onClick }: { item: BoardIt
 
 function SaveModal({ cond, offsets, onClose }: any) {
   const [title, setTitle] = useState("");
-  const [isSaving, setIsSaving] = useState(false); // ★ 保存中の状態を追加
-  const { user } = useAuth(); // ★ ログイン中のユーザーを取得
-  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate(); // ★useAuthはここで呼ばなくてOKです
 
   const save = async () => {
     if (!title.trim()) return;
-    if (!user) {
-      alert("保存するにはログインが必要です。");
-      return;
-    }
 
     setIsSaving(true);
 
-    // ★ Supabaseの saved_boards テーブルにデータを挿入
+    // ★修正: 保存する瞬間に、直接Supabaseへ「今のユーザー」を問い合わせる
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("保存するにはログインが必要です。一度ログアウトして再ログインをお試しください。");
+      setIsSaving(false);
+      return;
+    }
+
+    // データの保存処理
     const { error } = await supabase
       .from("saved_boards")
       .insert([
@@ -394,9 +398,9 @@ function SaveModal({ cond, offsets, onClose }: any) {
       return;
     }
 
-    // 保存成功時の処理
-    onClose(); // モーダルを閉じる
-    navigate("/zukan"); // 図鑑ページへ自動遷移
+    // 保存成功後、モーダルを閉じて図鑑一覧へ
+    onClose();
+    navigate("/zukan");
   };
 
   return (
