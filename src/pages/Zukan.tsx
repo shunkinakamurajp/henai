@@ -1,25 +1,52 @@
 import { useState, useMemo, useEffect } from "react";
 import { useItems } from "../hooks/useItems.ts";
-import { SavedBoard, PhotoMaterial } from "../types/index.ts";
+import { SavedBoard } from "../types/index.ts";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth.ts";
+import { supabase } from "../lib/supabase"; // ★ Supabaseクライアントをインポート
 
 const F = { serif: '"Noto Serif JP", serif', sans: '"Noto Sans JP", sans-serif' };
 const C = { text: "#3D3328", sub: "#A39B8B", accent: "#A68A61", border: "#E6E0D4", bg: "#F8F6F0" };
 
-/**
- * 自身が作成した図鑑（ボードの保存データ）を管理・閲覧するページ
- */
 export default function Zukan() {
-  // ★ myPhotos を使用して、図鑑の中身も自分の投稿のみに限定する
-  const { myPhotos, loading, error } = useItems();
+  const { myPhotos, loading: itemsLoading } = useItems(); // itemsLoading として取得
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [boards, setBoards] = useState<SavedBoard[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [boardsLoading, setBoardsLoading] = useState(true); // ★ 図鑑取得用のローディング
 
   useEffect(() => {
-    const raw = localStorage.getItem("savedBoards");
-    if (raw) setBoards(JSON.parse(raw));
-  }, []);
+    const fetchBoards = async () => {
+      if (!user) {
+        setBoards([]);
+        setBoardsLoading(false);
+        return;
+      }
+
+      setBoardsLoading(true);
+      const { data, error } = await supabase
+        .from("saved_boards")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("図鑑データの取得に失敗しました:", error.message);
+      } else if (data) {
+        setBoards(data as SavedBoard[]);
+        if (data.length > 0 && !activeId) {
+          setActiveId(data[0].id);
+        }
+      }
+      setBoardsLoading(false);
+    };
+
+    fetchBoards();
+  }, [user]); // activeId は依存配列から外した方が安定します
+
+  // 全体のローディング状態
+  const isLoading = itemsLoading || boardsLoading;
 
   const activeBoard = boards.find((b) => b.id === activeId) ?? boards[0] ?? null;
 
@@ -47,16 +74,16 @@ export default function Zukan() {
         </button>
       </div>
 
-      {loading && <div style={{ textAlign: "center", padding: 40, color: C.sub }}>読み込み中...</div>}
+      {isLoading && <div style={{ textAlign: "center", padding: 40, color: C.sub }}>読み込み中...</div>}
       
-      {!loading && boards.length === 0 && (
+      {!isLoading && boards.length === 0 && (
         <div style={{ textAlign: "center", padding: "100px 0", color: C.sub, border: `1px dashed ${C.border}`, borderRadius: 16 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
           <p style={{ fontSize: 14 }}>まだ保存された図鑑がありません。「Myフォト」でお気に入りの配置を保存してください。</p>
         </div>
       )}
 
-      {!loading && boards.length > 0 && (
+      {!isLoading && boards.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 24 }}>
           {/* 左側：図鑑リスト */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
