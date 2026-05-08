@@ -342,15 +342,15 @@ useEffect(() => {
             ) : (
             <>
             {/* 「：」がある場合は称号として強調表示する */}
-            {aiAnalysis.includes('：') ? (
-              <>
-              <div style={{ fontWeight: 'bold', color: colors.accent, marginBottom: '6px', fontSize: '14px' }}>
-                {aiAnalysis.split('：')[0].replace(/【|】/g, '')}
-              </div>
-              <div style={{ color: colors.text }}>{aiAnalysis.split('：')[1]}</div>
+            {aiAnalysis && aiAnalysis.includes('：') ? (
+            <>
+            <div style={{ fontWeight: 'bold', color: colors.accent, marginBottom: '6px', fontSize: '14px' }}>
+              {aiAnalysis.split('：')[0].replace(/【|】/g, '')}
+            </div>
+            <div style={{ color: colors.text }}>{aiAnalysis.split('：')[1]}</div>
             </>
             ) : (
-              <div>{aiAnalysis}</div>
+            <div>{aiAnalysis}</div>
             )}
             </>
             )}
