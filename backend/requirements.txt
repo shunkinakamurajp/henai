@@ -4,3 +4,4 @@ google-generativeai
 python-multipart
 python-dotenv
 gunicorn
+supabase
