@@ -15,7 +15,7 @@ export default function Login() {
 
     const res = await login(email, password);
     if (res.success) {
-      navigate("/photos"); // ログイン成功時に一覧画面へ
+      navigate("/Home"); // ログイン成功時に一覧画面へ
     } else {
       setError(res.error || "ログインに失敗しました");
     }

@@ -16,20 +16,25 @@ export default function Observation() {
   const [selTag, setSelTag] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoMaterial | null>(null);
 
+  // 1. 他人の投稿をシャッフルした状態で保持する（読み込み時のみ実行）
+  const shuffledPhotos = useMemo(() => {
+    return [...otherPhotos].sort(() => Math.random() - 0.5);
+  }, [otherPhotos]);
+
   // 他人の投稿から、タグのリストを生成
   const allTags = useMemo(() => {
-    const tags = otherPhotos.flatMap((p) => [...(p.aiTags || []), ...(p.tags || [])].map((t) => t.replace(/^#/, "")));
+    const tags = shuffledPhotos.flatMap((p) => [...(p.aiTags || []), ...(p.tags || [])].map((t) => t.replace(/^#/, "")));
     return [...new Set(tags)];
-  }, [otherPhotos]);
+  }, [shuffledPhotos]);
 
   // フィルタリング後の他者の投稿
   const filteredPhotos = useMemo(() => {
-    return otherPhotos.filter((p) => {
-      if (!selTag) return true;
-      const itemTags = [...(p.aiTags || []), ...(p.tags || [])].map((t) => t.replace(/^#/, ""));
-      return itemTags.includes(selTag);
-    });
-  }, [otherPhotos, selTag]);
+  return shuffledPhotos.filter((p) => {
+    if (!selTag) return true;
+    const itemTags = [...(p.aiTags || []), ...(p.tags || [])].map((t) => t.replace(/^#/, ""));
+    return itemTags.includes(selTag);
+  });
+}, [shuffledPhotos, selTag]);
 
   if (loading) return <div style={{ padding: 40, backgroundColor: colors.bg, minHeight: "100vh", textAlign: "center" }}>観測台帳を展開中...</div>;
 
