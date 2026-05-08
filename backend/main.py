@@ -136,3 +136,15 @@ async def save_exhibit(
     except Exception as e:
         print(f"！！！致命的なエラー発生！！！: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # 開発時は全て許可。本番はVercelのURLを指定するのが安全
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
