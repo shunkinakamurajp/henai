@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useItems } from "../hooks/useItems.ts"; // 他のページと同じフックを使用
-
+import { useAuth } from "../hooks/useAuth.ts";
+import { supabase } from "../lib/supabase";
 /**
  * デザイントークンと定数
  */
@@ -105,8 +106,8 @@ const ZukanCard = ({ board, onClick }: { board: any; onClick: () => void }) => (
  * メインコンポーネント: Home
  */
 export default function Home() {
-  // 他のページで成功している myPhotos を直接使う
   const { myPhotos, loading } = useItems();
+  const { user } = useAuth(); // ★追加: ユーザー情報を取得
   const [boards, setBoards] = useState<any[]>([]);
   const navigate = useNavigate();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -132,15 +133,38 @@ export default function Home() {
   }, [lightboxIdx, displayPhotos.length]);
 
   useEffect(() => {
-    const rawBoards = localStorage.getItem("savedBoards");
-    if (rawBoards) {
-      try {
-        setBoards(JSON.parse(rawBoards));
-      } catch (e) {
+    const fetchRecentBoards = async () => {
+      if (!user) {
         setBoards([]);
+        return;
       }
-    }
-  }, []);
+
+      const { data, error } = await supabase
+        .from("saved_boards")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(6); // ★ ホーム画面用なので最新の6件だけ取得すれば十分です
+
+      if (error) {
+        console.error("ホーム画面での図鑑取得エラー:", error.message);
+      } else if (data) {
+        // Zukan.tsx と同じように、DBのスネークケースをキャメルケースに変換してセット
+        const formattedBoards = data.map((b: any) => ({
+          id: b.id,
+          userId: b.user_id,
+          title: b.title,
+          comment: b.comment,
+          condition: b.condition,
+          offsets: b.offsets,
+          createdAt: b.created_at,
+        }));
+        setBoards(formattedBoards);
+      }
+    };
+
+    fetchRecentBoards();
+  }, [user]);
 
   return (
     <div style={{ 
