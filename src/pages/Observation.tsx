@@ -14,6 +14,7 @@ export default function Observation() {
   // ★ otherPhotos を直接受け取ることで、自分以外のデータのみを表示
   const { otherPhotos, loading } = useItems();
   const [selTag, setSelTag] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoMaterial | null>(null);
 
   // 他人の投稿から、タグのリストを生成
   const allTags = useMemo(() => {
@@ -64,7 +65,15 @@ export default function Observation() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "40px" }}>
           {filteredPhotos.map((photo, index) => (
-            <div key={photo.id} style={{ position: "relative", transform: `rotate(${((index % 5) - 2) * 1.5}deg)`, transition: "transform 0.3s" }}>
+            <div 
+              key={photo.id} 
+               onClick={() => setSelectedPhoto(photo)} // ★ 追加：クリックで選択
+              style={{ 
+                position: "relative", 
+                transform: `rotate(${((index % 5) - 2) * 1.5}deg)`, 
+                cursor: "zoom-in", // ★ 追加：クリックできることを示す
+                transition: "transform 0.2s ease"
+            }}>
               <div style={{ background: "#fff", padding: "12px", borderRadius: "2px", boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
                 <PhotoCard item={photo} />
                 <div style={{ marginTop: "12px", fontSize: "10px", color: colors.subtext, textAlign: "right", fontFamily: fonts.mono, borderTop: `1px solid ${colors.line}`, paddingTop: "8px" }}>
@@ -73,6 +82,20 @@ export default function Observation() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {selectedPhoto && (
+        <div style={{ /* 画面全体を覆う暗い背景のスタイル */ }} onClick={() => setSelectedPhoto(null)}>
+          
+          <button style={{ /* 右上の閉じるボタンのスタイル */ }}>✕</button>
+
+          <div style={{ /* 白いカード部分のスタイル */ }} onClick={(e) => e.stopPropagation()}>
+            {/* ここに selectedPhoto の画像やテキストを表示 */}
+            <img src={selectedPhoto.url} />
+            <h2>{selectedPhoto.title}</h2>
+            <p>{selectedPhoto.description}</p>
+          </div>
+          
         </div>
       )}
     </div>
