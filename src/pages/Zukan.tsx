@@ -3,6 +3,8 @@ import { useItems } from "../hooks/useItems.ts";
 import { useAuth } from "../hooks/useAuth"; // .js を削除
 import { SavedBoard, PhotoMaterial } from "../types/index.ts";
 import { useNavigate } from "react-router-dom";
+import { db } from "../firebase";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 
 const F = { serif: '"Noto Serif JP", serif', sans: '"Noto Sans JP", sans-serif' };
 const C = { text: "#3D3328", sub: "#A39B8B", accent: "#A68A61", border: "#E6E0D4", bg: "#F8F6F0" };
@@ -16,37 +18,33 @@ export default function Zukan() {
   const [boardsLoading, setBoardsLoading] = useState(true);
 
   useEffect(() => {
-  if (!user) return;
-
-  try {
-    // localStorage から取得
-    const saved = localStorage.getItem(`savedBoards_${user.uid}`);
-
-    if (saved) {
-      const fetchedBoards: SavedBoard[] = JSON.parse(saved);
-
-      // createdAt の新しい順
-      fetchedBoards.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
-      );
-
-      setBoards(fetchedBoards);
-
-      // 最初の図鑑を選択
-      if (fetchedBoards.length > 0 && !activeId) {
-        setActiveId(fetchedBoards[0].id);
+    const fetchBoards = async () => {
+      if (!user) return;
+      try {
+        const q = query(
+          collection(db, "savedBoards"), 
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        const fetchedBoards = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as SavedBoard[];
+        
+        setBoards(fetchedBoards);
+        // 最初の一つを選択状態にする
+        if (fetchedBoards.length > 0 && !activeId) {
+          setActiveId(fetchedBoards[0].id);
+        }
+      } catch (err) {
+        console.error("ボードの取得に失敗しました:", err);
+      } finally {
+        setBoardsLoading(false);
       }
-    } else {
-      setBoards([]);
-    }
-  } catch (err) {
-    console.error("ボードの取得に失敗しました:", err);
-  } finally {
-    setBoardsLoading(false);
-  }
-}, [user]);
+    };
+    fetchBoards();
+  }, [user]);
 
   const loading = itemsLoading || boardsLoading;
   const activeBoard = boards.find((b) => b.id === activeId) ?? boards[0] ?? null;
@@ -97,7 +95,7 @@ export default function Zukan() {
                 }}
               >
                 <div style={{ fontSize: 14, fontWeight: "bold", color: activeId === b.id ? C.accent : C.text }}>{b.title}</div>
-                <div style={{ fontSize: 10, color: C.sub, marginTop: 4 }}>{b.createdAt? new Date(b.createdAt).toLocaleDateString(): ""}</div>
+                <div style={{ fontSize: 10, color: C.sub, marginTop: 4 }}>{new Date(b.createdAt).toLocaleDateString()}</div>
               </div>
             ))}
           </div>
